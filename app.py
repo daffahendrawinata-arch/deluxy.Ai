@@ -1,13 +1,13 @@
 import streamlit as st
 import ezdxf
 import io
+import random
 import plotly.graph_objects as go
 
 # -------------------------------------------------------------------
 # KONFIGURASI HALAMAN & ATRIBUSI PENCIPTA
 # -------------------------------------------------------------------
-# BISA DIUBAH: Ganti nama Anda di bawah ini
-NAMA_PENCIPTA = "Muhammad Daffa Hendra WInata, CPS, S.T" 
+NAMA_PENCIPTA = "Nama Anda"  # Ganti dengan nama asli / studio Anda
 
 st.set_page_config(
     page_title=f"DELUXY.Ai by {NAMA_PENCIPTA}", 
@@ -15,7 +15,6 @@ st.set_page_config(
     layout="wide"
 )
 
-# Custom Styling CSS
 st.markdown(f"""
     <style>
     .main-header {{
@@ -60,7 +59,7 @@ st.markdown(f"""
         <h2 style="margin:0;">🏛️ DELUXY.Ai - Architectural & RAB Engine</h2>
         <div class="creator-badge">Created & Designed by {NAMA_PENCIPTA}</div>
         <p style="margin-top: 10px; opacity: 0.85; margin-bottom:0;">
-            Platform Pemodelan Lahan, Visualisasi Render Fasad 3D Presisi, & Kalkulasi Engine RAB
+            Platform Pemodelan Lahan, Visualisasi Render Fasad 3D Melimpah, & Engine RAB
         </p>
     </div>
 """, unsafe_allow_html=True)
@@ -89,45 +88,60 @@ with st.sidebar:
     btn_generate = st.button("🚀 Hasilkan Visual & Engine RAB", use_container_width=True)
 
 # -------------------------------------------------------------------
-# DATABASE VISUAL RENDER 3D RAPI & PRESISI
+# DATABASE MELIMPAH & ENGINE DYNAMIC VISUAL FETCHING
 # -------------------------------------------------------------------
-def get_visual_renders(bg, jml_lantai, gaya_pilihan, kolam):
-    """Mengambil koleksi gambar render 3D realistis beresolusi tinggi."""
-    
-    # 1. Gambar Fasad Utama berdasarkan Skenario Gaya & Budget
-    if bg >= 800000000 or "Mewah" in gaya_pilihan:
-        fasad_url = "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1400&q=80"
-        fasad_desc = "Visual Fasad Luxury Modern Glass Box dengan Pencahayaan Warm LED Ambient"
-    elif jml_lantai == 2 or bg >= 500000000:
-        if "Japandi" in gaya_pilihan:
-            fasad_url = "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1400&q=80"
-            fasad_desc = "Visual Fasad Japandi 2 Lantai - Timber Cladding & Clean White Exterior"
-        elif "Industrial" in gaya_pilihan:
-            fasad_url = "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1400&q=80"
-            fasad_desc = "Visual Fasad Industrial Modern - Exposed Concrete & Steel Frame"
-        else:
-            fasad_url = "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1400&q=80"
-            fasad_desc = "Visual Fasad Minimalis Modern 2 Lantai - Geometris Rapi & Balkon Kaca"
-    else:
-        fasad_url = "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=1400&q=80"
-        fasad_desc = "Visual Fasad Compact Minimalis 1 Lantai - Efisiensi Maksimal"
+DATABASE_FOTO = {
+    "Minimalis Modern": [
+        "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1600585152220-90363fe7e115?auto=format&fit=crop&w=1200&q=80"
+    ],
+    "Japandi / Skandinavia": [
+        "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1600573472592-401b489a3cdc?auto=format&fit=crop&w=1200&q=80"
+    ],
+    "Industrial Modern": [
+        "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=1200&q=80"
+    ],
+    "Mewah Kontemporer": [
+        "https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1200&q=80"
+    ]
+}
 
-    # 2. Gambar Interior & Area Outdoor
-    interior_kamar = "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?auto=format&fit=crop&w=800&q=80"
-    interior_dapur = "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=800&q=80"
-    
-    if kolam:
-        outdoor_url = "https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?auto=format&fit=crop&w=1200&q=80"
-        outdoor_desc = "Visual Backyard Pool & Decking Kayu Minimalis"
-    else:
-        outdoor_url = "https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&w=1200&q=80"
-        outdoor_desc = "Visual Taman Belakang / Tropical Inner Courtyard"
+INTERIOR_KAMAR_LIST = [
+    "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1560185893-a55cbc8c57e8?auto=format&fit=crop&w=800&q=80"
+]
 
-    return {
-        'fasad_url': fasad_url, 'fasad_desc': fasad_desc,
-        'kamar_url': interior_kamar, 'dapur_url': interior_dapur,
-        'outdoor_url': outdoor_url, 'outdoor_desc': outdoor_desc
-    }
+INTERIOR_DAPUR_LIST = [
+    "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1507089947368-19c1da9775ae?auto=format&fit=crop&w=800&q=80"
+]
+
+KOLAM_LIST = [
+    "https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1562778612-e1e0cda6919e?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=800&q=80"
+]
+
+TAMAN_LIST = [
+    "https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1598902108854-10e335adac99?auto=format&fit=crop&w=800&q=80"
+]
+
+def get_koleksi_fasad(gaya_pilihan):
+    """Mengembalikan daftar foto fasad sesuai gaya."""
+    return DATABASE_FOTO.get(gaya_pilihan, DATABASE_FOTO["Minimalis Modern"])
 
 # -------------------------------------------------------------------
 # MODEL DIAGRAM TAPAK LAHAN 3D
@@ -146,7 +160,7 @@ def generate_site_3d_box(p, l, jml_lantai, kolam):
         color='#38b000', opacity=0.8, name="Batas Lahan Tanah"
     ))
     
-    # Massa Bangunan Utama
+    # Massa Bangunan
     tinggi = 3.5 if jml_lantai == 1 else 6.5
     fig.add_trace(go.Mesh3d(
         x=[1, p*0.6, p*0.6, 1, 1, p*0.6, p*0.6, 1],
@@ -158,7 +172,7 @@ def generate_site_3d_box(p, l, jml_lantai, kolam):
         color='#48cae4', opacity=0.7, name="Massa Bangunan"
     ))
 
-    # Massa Kolam Renang
+    # Area Outdoor / Kolam
     if kolam:
         fig.add_trace(go.Mesh3d(
             x=[p*0.65, p*0.95, p*0.95, p*0.65, p*0.65, p*0.95, p*0.95, p*0.65],
@@ -216,32 +230,52 @@ def generate_dxf(p, l):
 # -------------------------------------------------------------------
 if prompt:
     rab = hitung_rab(panjang, lebar, lantai, ada_kolam)
-    visuals = get_visual_renders(budget, lantai, gaya, ada_kolam)
     
     tab_render, tab_site, tab_rab, tab_advis = st.tabs([
-        "🖼️ Render Fasad 3D Rapi", 
+        "🖼️ Galeri Visual 3D (Banyak Pilihan)", 
         "📐 Diagram Plot Tapak Lahan", 
         "📊 RAB & Material Engineering", 
         "💡 Konsultasi Strategis Klien"
     ])
     
-    # --- TAB 1: VISUAL RENDER 3D RAPI & DETAIL ---
+    # --- TAB 1: GALERI VISUAL MELIMPAH ---
     with tab_render:
-        st.subheader("🖼️ Referensi Render Fasad 3D & Interior Realistis")
-        st.caption(f"Visualisasi presisi berbasis preferensi desain oleh **{NAMA_PENCIPTA}**:")
+        st.subheader("🖼️ Galeri Referensi Render Fasad 3D & Interior")
+        st.caption(f"Inspirasi visual melimpah berbasis gaya **{gaya}** oleh **{NAMA_PENCIPTA}**:")
         
-        # Gambar Fasad Utama beresolusi tinggi
-        st.image(visuals['fasad_url'], caption=visuals['fasad_desc'], use_container_width=True)
+        # Tombol Acak Inspirasi
+        if st.button("🔄 Acak / Muat Ulang Inspirasi Gambar Baru"):
+            st.rerun()
+
+        # Ambil daftar gambar fasad
+        koleksi_fasad = get_koleksi_fasad(gaya)
+        fasad_pilihan = random.choice(koleksi_fasad)
+        
+        # Tampilkan Fasad Utama
+        st.image(fasad_pilihan, caption=f"Visual Fasad Utama ({gaya}) - HD Render", use_container_width=True)
+        
         st.markdown("---")
+        st.subheader("🏡 Galeri Pilihan Alternatif Fasad Lainya:")
         
-        # Interior Grid
+        # Tampilkan Galeri Fasad Alternatif dalam Baris
+        cols_fasad = st.columns(len(koleksi_fasad))
+        for idx, img_url in enumerate(koleksi_fasad):
+            with cols_fasad[idx]:
+                st.image(img_url, caption=f"Opsi Fasad {idx+1}", use_container_width=True)
+
+        st.markdown("---")
+        st.subheader("🛋️ Interior & Area Outdoor Suasana:")
+        
+        # Interior Random Selection
         c1, c2, c3 = st.columns(3)
         with c1:
-            st.image(visuals['kamar_url'], caption="Kamar Utama - Modern Ambient Lighting", use_container_width=True)
+            st.image(random.choice(INTERIOR_KAMAR_LIST), caption="Inspirasi Kamar Utama", use_container_width=True)
         with c2:
-            st.image(visuals['dapur_url'], caption="Dapur & Dining Area - Clean Minimalist", use_container_width=True)
+            st.image(random.choice(INTERIOR_DAPUR_LIST), caption="Inspirasi Dapur & Dining", use_container_width=True)
         with c3:
-            st.image(visuals['outdoor_url'], caption=visuals['outdoor_desc'], use_container_width=True)
+            outdoor_img = random.choice(KOLAM_LIST) if ada_kolam else random.choice(TAMAN_LIST)
+            caption_out = "Backyard Pool Area" if ada_kolam else "Tropical Inner Courtyard"
+            st.image(outdoor_img, caption=caption_out, use_container_width=True)
 
     # --- TAB 2: DIAGRAM SITE LAHAN ---
     with tab_site:
