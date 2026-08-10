@@ -4,10 +4,10 @@ import io
 import plotly.graph_objects as go
 
 # -------------------------------------------------------------------
-# KONFIGURASI HALAMAN & STYLING MODERN (NON-FLAT)
+# KONFIGURASI HALAMAN
 # -------------------------------------------------------------------
 st.set_page_config(
-    page_title="DELUXY.Ai - Architectural & Engineering Platform", 
+    page_title="DELUXY.Ai - Architectural & Engineering Engine", 
     page_icon="🏛️", 
     layout="wide"
 )
@@ -15,73 +15,68 @@ st.set_page_config(
 st.markdown("""
     <style>
     .main-header {
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-        padding: 24px;
-        border-radius: 16px;
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        padding: 20px;
+        border-radius: 12px;
         color: white;
-        margin-bottom: 25px;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+        margin-bottom: 20px;
     }
-    div.stButton > button:first-child {
-        background: linear-gradient(90deg, #2563eb 0%, #1d4ed8 100%);
-        color: white;
-        border-radius: 8px;
-        font-weight: 600;
-        height: 48px;
-        border: none;
-        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        padding-top: 10px;
+        padding-bottom: 10px;
+        background-color: #f1f5f9;
+        border-radius: 6px;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# Header Utama
 st.markdown("""
     <div class="main-header">
-        <h1 style="margin:0; font-size: 2.2rem;">🏛️ DELUXY.Ai Engine</h1>
-        <p style="margin-top: 5px; opacity: 0.8; font-size: 1rem;">AI Architectural Dynamic 3D Modeling, Structural RAB Engineering, & Client Advisory</p>
-        <p style="margin-top: 10px; font-weight: 600; color: #38bdf8;">Lead Engineer & Developer: Daffa Hendrawinata</p>
+        <h2 style="margin:0;">🏛️ DELUXY.Ai - Engine Arsitektur & RAB Presisi</h2>
+        <p style="margin-top: 5px; opacity: 0.8;">Platform Pemodelan 3D Rapi, Kalkulasi RAB, & Advis Konsultasi Klien</p>
     </div>
 """, unsafe_allow_html=True)
 
 # -------------------------------------------------------------------
-# INPUT PARAMETER
+# SIDEBAR PARAMETER
 # -------------------------------------------------------------------
-col_input, col_output = st.columns([1, 2.2])
-
-with col_input:
-    st.subheader("⚙️ Parameter Desain & Budget Klien")
+with st.sidebar:
+    st.header("⚙️ Input Parameter Klien")
+    prompt = st.text_area("Deskripsi / Konsep Klien:", "Rumah 2 lantai minimalis dengan pencahayaan alami dan kolam renang")
+    budget = st.number_input("Target Budget (Rp):", min_value=100000000, value=650000000, step=50000000, format="%d")
     
-    prompt = st.text_area(
-        "Konsep & Kebutuhan Spesifik Klien:", 
-        placeholder="Contoh: Rumah 2 lantai minimalis modern budget 600jt, 3 kamar tidur, bukaan kaca lebar, ada kolam renang",
-        height=100
-    )
+    st.subheader("Ukuran Lahan")
+    panjang = st.slider("Panjang Lahan (m):", 10, 30, 15)
+    lebar = st.slider("Lebar Lahan (m):", 6, 20, 8)
+    lantai = st.radio("Jumlah Lantai:", [1, 2])
+    ada_kolam = st.checkbox("Sertakan Kolam Renang", value=True)
     
-    budget = st.number_input("Target Budget Klien (Rp):", min_value=100000000, value=600000000, step=50000000, format="%d")
-    gaya = st.selectbox("Gaya Fasad Arsitektur:", [
-        "Minimalis Modern (Clean Glass & Wood)", 
-        "Skandinavia / Japandi (Warm Earthy & White)", 
-        "Mewah Kontemporer (Luxury Marble & Concrete)", 
-        "Industrial Modern (Exposed Brick & Black Steel)"
+    gaya = st.selectbox("Gaya Arsitektur:", [
+        "Minimalis Modern", 
+        "Japandi / Skandinavia", 
+        "Industrial Modern", 
+        "Mewah Kontemporer"
     ])
     
-    c1, c2 = st.columns(2)
-    with c1:
-        panjang = st.slider("Panjang Lahan (m):", 8, 30, 15)
-        lantai = st.radio("Jumlah Lantai:", [1, 2])
-    with c2:
-        lebar = st.slider("Lebar Lahan (m):", 6, 20, 10)
-        ada_kolam = st.checkbox("Fasilitas Kolam Renang", value=True)
-        
-    btn_generate = st.button("🚀 Render Model 3D & Kalkulasi Engineering", use_container_width=True)
+    btn_generate = st.button("🚀 Render Model & Kalkulasi", use_container_width=True)
 
 # -------------------------------------------------------------------
-# HELPER DYNAMIC 3D SHAPES
+# HELPER MESH 3D RAPI (BALOK PRESISI)
 # -------------------------------------------------------------------
-def add_3d_block(fig, x0, x1, y0, y1, z0, z1, color, opacity=1.0, name=""):
+def add_solid_box(fig, x_range, y_range, z_range, color, opacity=1.0, name=""):
+    """Fungsi pembentuk balok 3D rapi tanpa garis silang melintang."""
+    x0, x1 = x_range
+    y0, y1 = y_range
+    z0, z1 = z_range
+    
     x = [x0, x1, x1, x0, x0, x1, x1, x0]
     y = [y0, y0, y1, y1, y0, y0, y1, y1]
     z = [z0, z0, z0, z0, z1, z1, z1, z1]
+    
+    # Indeks Segitiga untuk membentuk Kubus Rapi
     i = [7, 0, 0, 0, 4, 4, 2, 6, 4, 0, 3, 7]
     j = [3, 4, 1, 2, 5, 6, 3, 7, 1, 1, 2, 6]
     k = [0, 7, 2, 3, 6, 7, 7, 5, 5, 5, 6, 2]
@@ -89,258 +84,206 @@ def add_3d_block(fig, x0, x1, y0, y1, z0, z1, color, opacity=1.0, name=""):
     fig.add_trace(go.Mesh3d(
         x=x, y=y, z=z, i=i, j=j, k=k,
         color=color, opacity=opacity,
-        lighting=dict(ambient=0.65, diffuse=0.85, fresnel=0.3, specular=0.5, roughness=0.35),
-        lightposition=dict(x=150, y=200, z=300),
+        flatshading=True,
+        lighting=dict(ambient=0.7, diffuse=0.8, specular=0.2),
         name=name, showlegend=False
     ))
 
-# GENERATOR 3D DINAMIS (BENTUK BERBEDA-BEDA SESUAI BUDGET & LANTAI)
-def generate_dynamic_3d_model(p, l, jml_lantai, bg, gaya_pilihan, kolam):
+# -------------------------------------------------------------------
+# GENERATOR MODEL 3D BERSIH & RAPI
+# -------------------------------------------------------------------
+def render_clean_3d(p, l, jml_lantai, bg, gaya_pilihan, kolam):
     fig = go.Figure()
     
-    # Palet Warna Sesuai Gaya
+    # Skema Warna Berdasarkan Gaya
     if "Industrial" in gaya_pilihan:
-        c_wall = '#3A3A3A'; c_accent = '#8D0801'; c_frame = '#111111'
-    elif "Skandinavia" in gaya_pilihan:
-        c_wall = '#F4F1DE'; c_accent = '#E07A5F'; c_frame = '#3D405B'
+        c_wall = '#4A4E69'; c_accent = '#9A8C98'; c_roof = '#22223B'
+    elif "Japandi" in gaya_pilihan:
+        c_wall = '#F4F1DE'; c_accent = '#E07A5F'; c_roof = '#3D405B'
     elif "Mewah" in gaya_pilihan:
-        c_wall = '#E9ECEF'; c_accent = '#D4AF37'; c_frame = '#212529'
+        c_wall = '#E9ECEF'; c_accent = '#D4AF37'; c_roof = '#212529'
     else: # Minimalis
-        c_wall = '#F8F9FA'; c_accent = '#6C584C'; c_frame = '#1A1A1A'
+        c_wall = '#F8F9FA'; c_accent = '#6C584C'; c_roof = '#343A40'
 
-    # 1. Base Site & Lanskap
-    add_3d_block(fig, -2, p+2, -2, l+2, -0.2, 0.0, '#2D6A4F', name="Taman")
-    add_3d_block(fig, 0, p*0.35, -1.8, 0.0, 0.0, 0.08, '#8D99AE', name="Carport")
+    # 1. Base Tapak Lahan (Rumput & Carport)
+    add_solid_box(fig, [-1, p+1], [-1, l+1], [-0.1, 0.0], '#38b000', name="Taman/Rumput")
+    add_solid_box(fig, [0, 5], [0, 3.5], [0.0, 0.05], '#a0aab2', name="Carport")
 
-    # 2. VARIASI MASSA BANGUNAN BERDASARKAN LANTAI & BUDGET
+    # 2. VARIATIVE BUILDING MASSING (BENTUK BEDA BERDASARKAN LANTAI & BUDGET)
     if jml_lantai == 1:
-        # BENTUK 1: COMPACT SINGLE MASS WITH EXTENDED CANOPY
-        add_3d_block(fig, 0, p*0.6, 0, l*0.75, 0.0, 3.5, c_wall, name="Massa Lantai 1")
-        add_3d_block(fig, p*0.1, p*0.5, -0.05, 0.05, 0.0, 3.5, c_accent, name="Accent Wall")
-        
-        # Atap Pelana / Minimalis Flat Roof
-        x_roof = [0, p*0.6, p*0.6, 0, (p*0.6)/2]
-        y_roof = [0, 0, l*0.75, l*0.75, (l*0.75)/2]
-        z_roof = [3.5, 3.5, 3.5, 3.5, 5.2]
-        fig.add_trace(go.Mesh3d(x=x_roof, y=y_roof, z=z_roof, i=[0,1,2,3], j=[1,2,3,0], k=[4,4,4,4], color='#2B2D42'))
+        # BENTUK 1: RUMAH COMPACT 1 LANTAI
+        add_solid_box(fig, [1, p*0.65], [1, l*0.8], [0.0, 3.2], c_wall, name="Dinding L1")
+        # Dinding Akses Fasad Depan
+        add_solid_box(fig, [1, 3.5], [0.9, 1.0], [0.0, 3.2], c_accent, name="Aksen Fasad")
+        # Atap Pelana Simetris
+        fig.add_trace(go.Mesh3d(
+            x=[0.8, p*0.67, p*0.67, 0.8, (1 + p*0.65)/2],
+            y=[0.8, 0.8, l*0.82, l*0.82, (1 + l*0.8)/2],
+            z=[3.2, 3.2, 3.2, 3.2, 4.8],
+            i=[0, 1, 2, 3], j=[1, 2, 3, 0], k=[4, 4, 4, 4],
+            color=c_roof, name="Atap"
+        ))
 
     else: # 2 LANTAI
         if bg < 700000000:
-            # BENTUK 2: L-SHAPE MODERN COMPACT (BUDGET MENENGAH)
-            # Massa Lantai 1 (Main Living)
-            add_3d_block(fig, 0, p*0.65, 0, l*0.5, 0.0, 3.5, c_wall, name="L1 Utama")
-            add_3d_block(fig, p*0.3, p*0.65, l*0.5, l*0.8, 0.0, 3.5, c_wall, name="L1 Sayap")
-            # Massa Lantai 2 Stacked
-            add_3d_block(fig, 0, p*0.65, 0, l*0.5, 3.5, 6.8, c_accent, opacity=0.95, name="L2 Upper Box")
-            # Cantilever Canopy
-            add_3d_block(fig, -0.3, p*0.4, -0.5, 0.2, 3.4, 3.6, c_frame, name="Cantilever Canopy")
-
+            # BENTUK 2: MODULAR L-SHAPE 2 LANTAI (COMPACT MODERN)
+            # Lantai 1
+            add_solid_box(fig, [1, p*0.6], [1, l*0.5], [0.0, 3.2], c_wall, name="L1 Utama")
+            add_solid_box(fig, [p*0.3, p*0.6], [l*0.5, l*0.85], [0.0, 3.2], c_wall, name="L1 Belakang")
+            # Lantai 2 (Massa L-Shape Atas)
+            add_solid_box(fig, [1, p*0.6], [1, l*0.5], [3.2, 6.2], c_accent, name="L2 Utama")
+            # Canopy Balkon
+            add_solid_box(fig, [0.8, p*0.3], [0.8, 1.1], [3.1, 3.25], '#212529', name="Kanopi Balkon")
+            # Atap Datar Modern / Flat Roof Accent
+            add_solid_box(fig, [0.8, p*0.62], [0.8, l*0.87], [6.2, 6.5], c_roof, name="Atap Dak Datar")
         else:
-            # BENTUK 3: MODERN LUXURY STACKED CUBES (BUDGET TINGGI)
-            # Lantai 1 Glass & Concrete Base
-            add_3d_block(fig, 0, p*0.7, 0, l*0.8, 0.0, 3.6, c_wall, name="L1 Glass Podium")
-            # Lantai 2 Overhanging Box (Massa Melayang Modern)
-            add_3d_block(fig, -p*0.05, p*0.55, -0.3, l*0.6, 3.6, 7.2, c_accent, name="L2 Overhanging Cube")
-            # Feature Frame
-            add_3d_block(fig, -p*0.08, p*0.58, -0.35, -0.28, 3.5, 7.3, c_frame, name="Feature Frame Steel")
-            # Balcony Glass
-            add_3d_block(fig, -p*0.05, p*0.55, -0.3, -0.25, 7.2, 8.1, '#00B4D8', opacity=0.4, name="Railing Kaca")
+            # BENTUK 3: LUXURY STACKED CANTILEVER BOX (BUDGET TINGGI)
+            # Lantai 1 (Base Dinding Kaca Terbuka)
+            add_solid_box(fig, [1.5, p*0.7], [1.5, l*0.85], [0.0, 3.4], c_wall, name="L1 Glass Podium")
+            # Lantai 2 (Box Melayang Lengkap dengan Frame Solid)
+            add_solid_box(fig, [0.8, p*0.55], [1.0, l*0.65], [3.4, 6.8], c_accent, name="L2 Overhanging Cube")
+            # Frame Aksen Hitam Tegas
+            add_solid_box(fig, [0.7, p*0.57], [0.9, 1.05], [3.3, 6.9], '#111111', opacity=0.85, name="Frame Baja")
+            # Balkon Kaca
+            add_solid_box(fig, [0.8, p*0.55], [0.9, 1.0], [6.8, 7.6], '#48cae4', opacity=0.4, name="Railing Kaca")
 
-    # 3. KACA & BUKAAN
-    add_3d_block(fig, p*0.1, p*0.35, -0.05, 0.02, 0.8, 2.8, '#00B4D8', opacity=0.55, name="Jendela Kaca")
+    # 3. Kaca & Buka Jendela (Dipasang Rapi di Fasad Depan)
+    add_solid_box(fig, [2.0, 4.0], [0.88, 0.98], [0.8, 2.5], '#90e0ef', opacity=0.6, name="Jendela Utama")
+    add_solid_box(fig, [4.3, 5.2], [0.88, 0.98], [0.0, 2.2], '#3a5a40', name="Pintu Utam")
 
-    # 4. KOLAM RENANG (JIKA DIpilih)
+    # 4. Kolam Renang (Jika Dicentang)
     if kolam:
-        add_3d_block(fig, p*0.68, p*0.96, 0, l*0.8, 0.0, 0.1, '#D4A373', name="Deck Kayu")
-        add_3d_block(fig, p*0.72, p*0.92, l*0.12, l*0.68, -0.8, 0.0, '#0077B6', name="Kolam Renang")
-        add_3d_block(fig, p*0.725, p*0.915, l*0.13, l*0.67, -0.7, -0.05, '#48CAE4', opacity=0.75, name="Air Kolam")
+        add_solid_box(fig, [p*0.65, p*0.95], [1.0, l*0.7], [-0.4, 0.0], '#0077b6', name="Kolam Renang")
+        add_solid_box(fig, [p*0.67, p*0.93], [1.2, l*0.68], [-0.3, -0.02], '#48cae4', opacity=0.8, name="Air Kolam")
 
+    # Layout Kamera & Environment
     fig.update_layout(
         scene=dict(
-            xaxis=dict(title='Panjang (m)', backgroundcolor="#F8F9FA", gridcolor="#E5E5E5"),
-            yaxis=dict(title='Lebar (m)', backgroundcolor="#F8F9FA", gridcolor="#E5E5E5"),
-            zaxis=dict(title='Tinggi (m)', backgroundcolor="#F8F9FA", gridcolor="#E5E5E5"),
+            xaxis=dict(title='Panjang (m)', backgroundcolor="#f8f9fa"),
+            yaxis=dict(title='Lebar (m)', backgroundcolor="#f8f9fa"),
+            zaxis=dict(title='Tinggi (m)', backgroundcolor="#f8f9fa"),
             aspectmode='data',
-            camera=dict(eye=dict(x=-1.6, y=-1.6, z=1.2))
+            camera=dict(eye=dict(x=-1.5, y=-1.5, z=1.1))
         ),
-        margin=dict(r=0, l=0, b=0, t=0), height=500
+        margin=dict(r=0, l=0, b=0, t=0), height=520
     )
     return fig
 
 # -------------------------------------------------------------------
-# ENGINE KALKULASI RAB & MATERIAL
+# ENGINE KALKULASI ENGINEERING & RAB
 # -------------------------------------------------------------------
-def calculate_engineering_rab(p, l, jml_lantai, bg_klien, kolam):
+def hitung_rab(p, l, jml_lantai, kolam):
     luas_tanah = p * l
-    luas_lantai_1 = luas_tanah * 0.6
-    luas_bangunan_total = luas_lantai_1 * (1.85 if jml_lantai == 2 else 1.0)
+    luas_lantai_1 = luas_tanah * 0.55
+    luas_bangunan = luas_lantai_1 * (1.85 if jml_lantai == 2 else 1.0)
     
-    harga_m2_struktural = 4900000 if jml_lantai == 1 else 5900000
-    est_bangunan_utama = luas_bangunan_total * harga_m2_struktural
-    biaya_kolam = 75000000 if kolam else 0
-    total_est_biaya = est_bangunan_utama + biaya_kolam
-
+    biaya_m2 = 4800000 if jml_lantai == 1 else 5800000
+    est_bangunan = luas_bangunan * biaya_m2
+    biaya_kolam = 70000000 if kolam else 0
+    total_rab = est_bangunan + biaya_kolam
+    
     return {
         'luas_tanah': luas_tanah,
-        'luas_bangunan': luas_bangunan_total,
-        'total_biaya': total_est_biaya,
-        'p_persiapan': total_est_biaya * 0.05,
-        'p_struktur': total_est_biaya * 0.38,
-        'p_dinding_finishing': total_est_biaya * 0.32,
-        'p_atap': total_est_biaya * 0.13,
-        'p_mep': total_est_biaya * 0.12,
-        'batu_bata': int((p + l) * 2 * jml_lantai * 3.6 * 70),
-        'semen_sak': int(luas_bangunan_total * 1.35),
-        'besi_batang': int(luas_bangunan_total * 2.8),
-        'cat_kaleng': int((((p + l) * 2 * jml_lantai * 3.6) * 2) / 90) + 1
+        'luas_bangunan': luas_bangunan,
+        'total_rab': total_rab,
+        'persiapan': total_rab * 0.05,
+        'struktur': total_rab * 0.40,
+        'dinding_finishing': total_rab * 0.30,
+        'atap': total_rab * 0.13,
+        'mep': total_rab * 0.12,
+        'hebel_m3': int(luas_bangunan * 0.22),
+        'semen_sak': int(luas_bangunan * 1.25),
+        'besi_batang': int(luas_bangunan * 2.5)
     }
 
-def generate_2d_floorplan(p, l):
-    fig = go.Figure()
-    fig.add_shape(type="rect", x0=0, y0=0, x1=p, y1=l, line=dict(color="#111", width=3), fillcolor="#FAFAFA")
-    fig.add_shape(type="rect", x0=0, y0=0, x1=p*0.45, y1=l*0.5, fillcolor="#E2E2E2", line=dict(color="#333", width=2))
-    fig.add_trace(go.Scatter(x=[p*0.225], y=[l*0.25], text=["<b>R. Utama & Keluarga</b>"], mode="text"))
-    fig.add_shape(type="rect", x0=0, y0=l*0.5, x1=p*0.4, y1=l, fillcolor="#D1E7DD", line=dict(color="#333", width=2))
-    fig.add_trace(go.Scatter(x=[p*0.2], y=[l*0.75], text=["<b>Kamar Utama</b>"], mode="text"))
-    fig.add_shape(type="rect", x0=p*0.4, y0=l*0.5, x1=p*0.65, y1=l, fillcolor="#CFE2FF", line=dict(color="#333", width=2))
-    fig.add_trace(go.Scatter(x=[p*0.525], y=[l*0.75], text=["<b>Kamar Anak</b>"], mode="text"))
-    fig.add_shape(type="rect", x0=p*0.45, y0=0, x1=p*0.65, y1=l*0.5, fillcolor="#FFF3CD", line=dict(color="#333", width=2))
-    fig.add_trace(go.Scatter(x=[p*0.55], y=[l*0.25], text=["<b>Dapur & Service</b>"], mode="text"))
-    fig.add_shape(type="rect", x0=p*0.65, y0=0, x1=p, y1=l, fillcolor="#E0F2FE", line=dict(color="#333", width=2))
-    fig.add_trace(go.Scatter(x=[p*0.825], y=[l*0.5], text=["<b>Area Outdoor / Kolam</b>"], mode="text"))
-    fig.update_xaxes(title="Lebar Lahan (Meter)", range=[-1, p+1])
-    fig.update_yaxes(title="Panjang Lahan (Meter)", range=[-1, l+1], scaleanchor="x", scaleratio=1)
-    fig.update_layout(showlegend=False, height=380, margin=dict(l=10, r=10, t=20, b=10))
-    return fig
-
-def generate_dxf_file(p, l):
+def generate_dxf(p, l):
     doc = ezdxf.new("R2010")
     msp = doc.modelspace()
-    msp.add_lwpolyline([(0,0), (p,0), (p,l), (0,l), (0,0)], dxfattribs={"layer": "DINDING_LUAR"})
+    msp.add_lwpolyline([(0,0), (p,0), (p,l), (0,l), (0,0)], dxfattribs={"layer": "DINDING_OUTER"})
     out = io.StringIO()
     doc.write(out)
     return out.getvalue()
 
 # -------------------------------------------------------------------
-# DISPLAY OUTPUT & GALLERY REFERENSI REALISTIS DARI GOOGLE / UNSPLASH
+# MAIN TABS DISPLAY
 # -------------------------------------------------------------------
-with col_output:
-    if btn_generate:
-        if prompt:
-            st.success("✅ Pemodelan 3D Dinamis & Kalkulasi Engineering RAB Berhasil Disusun!")
-            
-            rab = calculate_engineering_rab(panjang, lebar, lantai, budget, ada_kolam)
-            
-            tab_3d, tab_render, tab_rab, tab_solusi, tab_2d = st.tabs([
-                "🏠 Model 3D Massing Dinamis", 
-                "🖼️ Render Realistis Fasad & Interior", 
-                "📊 Breakdown RAB & Material SNI", 
-                "💡 Konsultasi Strategis Klien",
-                "🏛️ Layout Denah 2D"
-            ])
-            
-            # --- TAB 1: MODEL 3D DINAMIS BERBEDA BENTUK ---
-            with tab_3d:
-                st.subheader("🏠 Model 3D Geometri Dinamis (Mengikuti Budget & Gaya)")
-                st.caption(f"Bentuk geometri 3D disesuaikan otomatis dengan gaya **{gaya}** & skenario budget **Rp {budget:,.0f}**:")
-                st.plotly_chart(generate_dynamic_3d_model(panjang, lebar, lantai, budget, gaya, ada_kolam), use_container_width=True)
+if prompt:
+    rab = hitung_rab(panjang, lebar, lantai, ada_kolam)
+    
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "🏠 Model 3D Geometri Presisi", 
+        "🖼️ Visual Render Realistis", 
+        "📊 RAB & Material Engineering", 
+        "💡 Advis Konsultasi Klien"
+    ])
+    
+    # TAB 1: 3D MODEL RAPI
+    with tab1:
+        st.subheader("🏠 Visualisasi 3D Geometri Rapi & Presisi")
+        st.caption("Bentuk geometri disusun berdasarkan blok massa struktural yang rapi dan mudah dipahami:")
+        st.plotly_chart(render_clean_3d(panjang, lebar, lantai, budget, gaya, ada_kolam), use_container_width=True)
 
-            # --- TAB 2: VISUAL RENDER GOOGLE / UNSPLASH DENGAN OPSI PILIHAN TERBAIK ---
-            with tab_render:
-                st.subheader("🖼️ Galeri Visual Fasad & Interior Pilihan Sesuai Konsep")
-                st.caption("Referensi visual arsitektur kualitas HD dari repositori Google/Unsplash untuk dipresentasikan ke konsumen:")
-                
-                # Fasad Gambar Berbeda Sesuai Budget
-                if budget > 800000000:
-                    img_fasad_url = "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80"
-                    caption_fasad = "Konsep Fasad Modern Luxury - Stacked Cube & Open Glass Space"
-                elif budget >= 500000000:
-                    img_fasad_url = "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80"
-                    caption_fasad = "Konsep Fasad Minimalis 2 Lantai - Combination Wood & Off-White Wall"
-                else:
-                    img_fasad_url = "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=1200&q=80"
-                    caption_fasad = "Konsep Fasad Compact 1 Lantai - Efficient Clean Design"
-                
-                st.image(img_fasad_url, caption=caption_fasad, use_container_width=True)
-                st.markdown("---")
-                
-                col_i1, col_i2 = st.columns(2)
-                with col_i1:
-                    st.markdown("#### 🛌 Konsep Kamar Tidur Utama (Master Bedroom)")
-                    st.image(
-                        "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?auto=format&fit=crop&w=800&q=80", 
-                        caption="Kamar Tidur Utama - Warm Wood Backlight & Ambient Lighting", 
-                        use_container_width=True
-                    )
-                with col_i2:
-                    st.markdown("#### 🍳 Konsep Dapur & Dining Area (Kitchen)")
-                    st.image(
-                        "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=800&q=80", 
-                        caption="Dapur Modern - Marble Top Counter & Built-in Cabinet", 
-                        use_container_width=True
-                    )
-
-            # --- TAB 3: BREAKDOWN RAB ---
-            with tab_rab:
-                st.subheader("📊 Rencana Anggaran Biaya (RAB) & Volume Material")
-                
-                m1, m2, m3 = st.columns(3)
-                m1.metric("Luas Lahan Tanah", f"{rab['luas_tanah']} m²")
-                m2.metric("Luas Total Bangunan", f"{rab['luas_bangunan']:.1f} m²")
-                m3.metric("Estimasi Total RAB", f"Rp {rab['total_biaya']:,.0f}")
-                
-                st.markdown("---")
-                st.write("#### 🏗️ Breakdown Biaya Pekerjaan:")
-                col_b1, col_b2 = st.columns(2)
-                with col_b1:
-                    st.write(f"- 📄 **Persiapan & Fondasi (5%):** Rp {rab['p_persiapan']:,.0f}")
-                    st.write(f"- 🏗️ **Pekerjaan Struktur (38%):** Rp {rab['p_struktur']:,.0f}")
-                    st.write(f"- 🧱 **Dinding & Finishing (32%):** Rp {rab['p_dinding_finishing']:,.0f}")
-                with col_b2:
-                    st.write(f"- 🏠 **Atap & Kuda-kuda (13%):** Rp {rab['p_atap']:,.0f}")
-                    st.write(f"- ⚡ **MEP & Sanitasi (12%):** Rp {rab['p_mep']:,.0f}")
-
-                st.markdown("---")
-                st.write("#### 📦 Volume Material Utama (AHSP Standard):")
-                c_mat1, c_mat2 = st.columns(2)
-                with c_mat1:
-                    st.write(f"- 🧱 **Bata Merah / Hebel:** ± {rab['batu_bata']:,} Pcs")
-                    st.write(f"- 📦 **Semen Portland (50kg):** ± {rab['semen_sak']:,} Sak")
-                with c_mat2:
-                    st.write(f"- 🏗️ **Besi Beton Structur (10/12mm):** ± {rab['besi_batang']:,} Batang")
-                    st.write(f"- 🎨 **Cat Dinding (25kg):** ± {rab['cat_kaleng']} Kaleng")
-
-            # --- TAB 4: KONSULTASI KLIEN ---
-            with tab_solusi:
-                st.subheader("💡 Analysis & Advisory Konsultasi Klien")
-                
-                selisih_budget = budget - rab['total_biaya']
-                
-                if selisih_budget < 0:
-                    st.error(f"⚠️ **Estimasi Konstruksi Melebihi Target Budget Klien (Defisit: Rp {abs(selisih_budget):,.0f})**")
-                    st.markdown("### 🛠️ Poin Rekomendasi Konsultasi ke Klien (Skenario Defisit):")
-                    st.write("1. **Skema Rumah Tumbuh:** Sarankan ke klien untuk memprioritaskan penyelesaian struktur lantai 1 & atap terlebih dahulu. Lantai 2 / finishing kolam renang dialokasikan ke tahap berikutnya.")
-                    st.write("2. **Substitusi Material Dinding:** Gunakan bata ringan (Hebel) untuk memangkas durasi serta biaya tukang hingga 15%.")
-                    st.write("3. **Rasionalisasi Kolam Renang:** Alihkan area kolam renang ke *dry garden* modern untuk menghemat anggaran ± Rp 75.000.000.")
-                else:
-                    st.success(f"✅ **Budget Klien Mencukupi (Sisa Margin: Rp {selisih_budget:,.0f})**")
-                    st.markdown("### 🌟 Poin Rekomendasi Konsultasi ke Klien (Skenario Surplus):")
-                    st.write("1. **Upgrade Finishing:** Gunakan sisa margin untuk mengupgrade penutup lantai ke *Granite Tile 80x80cm* serta kusen aluminium *powder coating*.")
-                    st.write("2. **Smart Home Integration:** Tawarkan penambahan sistem kunci pintu otomatis (*Smart Lock*) dan panel surya atap.")
-                    st.write("3. **Lanskap & Lighting:** Tambahkan lighting sorot arsitektural (*Warm White*) untuk fasad malam hari.")
-
-            # --- TAB 5: DENAH 2D ---
-            with tab_2d:
-                st.subheader("🏛️ Layout Denah Tata Ruang 2D")
-                st.plotly_chart(generate_2d_floorplan(panjang, lebar), use_container_width=True)
-
-            st.markdown("---")
-            st.download_button(
-                label="⬇️ Unduh DXF File Drafter CAD Engine",
-                data=generate_dxf_file(panjang, lebar),
-                file_name=f"DELUXY_Layout_{panjang}x{lebar}.dxf",
-                mime="application/dxf",
-                use_container_width=True
-            )
+    # TAB 2: RENDER DESAIN REALISTIS (FOTO)
+    with tab2:
+        st.subheader("🖼️ Referensi Render Fasad & Interior High-Definition")
+        st.caption("Visual desain siap saji untuk dipresentasikan langsung kepada klien:")
+        
+        if budget >= 700000000:
+            img_url = "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80"
+            desc = "Fasad Luxury Modern 2 Lantai - Cantilever Box & Open Glass"
+        elif lantai == 2:
+            img_url = "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80"
+            desc = "Fasad Minimalis Modern 2 Lantai - Elegan & Clean Lines"
         else:
-            st.warning("Silakan ketikkan deskripsi konsep impian terlebih dahulu.")
+            img_url = "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=1200&q=80"
+            desc = "Fasad Minimalis Compact 1 Lantai"
+            
+        st.image(img_url, caption=desc, use_container_width=True)
+        
+        c_i1, c_i2 = st.columns(2)
+        with c_i1:
+            st.image("https://images.unsplash.com/photo-1616594039964-ae9021a400a0?auto=format&fit=crop&w=800&q=80", caption="Interior Kamar Utama", use_container_width=True)
+        with c_i2:
+            st.image("https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=800&q=80", caption="Area Dapur & Dapur Bersih", use_container_width=True)
+
+    # TAB 3: BREAKDOWN RAB
+    with tab3:
+        st.subheader("📊 Rencana Anggaran Biaya (RAB) Standard AHSP")
+        
+        k1, k2, k3 = st.columns(3)
+        k1.metric("Luas Lahan", f"{rab['luas_tanah']} m²")
+        k2.metric("Luas Bangunan Total", f"{rab['luas_bangunan']:.1f} m²")
+        k3.metric("Estimasi Total Biaya", f"Rp {rab['total_rab']:,.0f}")
+        
+        st.markdown("---")
+        st.write("#### 🧱 Estimasi Material Utama:")
+        col_m1, col_m2 = st.columns(2)
+        with col_m1:
+            st.write(f"- **Bata Ringan / Hebel:** ± {rab['hebel_m3']} m³")
+            st.write(f"- **Semen Sak (50kg):** ± {rab['semen_sak']} Sak")
+        with col_m2:
+            st.write(f"- **Besi Beton Ulir/Polos:** ± {rab['besi_batang']} Batang")
+
+    # TAB 4: ADVIS KONSULTASI
+    with tab4:
+        st.subheader("💡 Saran Strategis untuk Klien")
+        selisih = budget - rab['total_rab']
+        
+        if selisih < 0:
+            st.error(f"⚠️ **Budget Klien Kurang sebesar: Rp {abs(selisih):,.0f}**")
+            st.write("**Rekomendasi Solusi:**")
+            st.write("1. **Sistem Rumah Tumbuh:** Tunda pembangunan lantai 2 atau finishing kolam renang.")
+            st.write("2. **Penyesuaian Material:** Gunakan Rangka Atap Baja Ringan & Kusen Aluminium Standard.")
+        else:
+            st.success(f"✅ **Budget Klien Mencukupi (Sisa Anggaran: Rp {selisih:,.0f})**")
+            st.write("**Rekomendasi Solusi:**")
+            st.write("1. Dialokasikan untuk upgrade *interior built-in* (Kitchen Set) atau *Smart Home System*.")
+
+    st.markdown("---")
+    st.download_button(
+        label="⬇️ Download File CAD Drafter (.DXF)",
+        data=generate_dxf(panjang, lebar),
+        file_name=f"Deluxy_Plan_{panjang}x{lebar}.dxf",
+        mime="application/dxf",
+        use_container_width=True
+    )
