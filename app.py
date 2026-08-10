@@ -4,7 +4,7 @@ import io
 import plotly.graph_objects as go
 
 # -------------------------------------------------------------------
-# KONFIGURASI HALAMAN & CUSTOM CSS (UI ELEGAN & NON-FLAT)
+# KONFIGURASI HALAMAN & STYLING MODERN (NON-FLAT)
 # -------------------------------------------------------------------
 st.set_page_config(
     page_title="DELUXY.Ai - Architectural & Engineering Platform", 
@@ -12,30 +12,16 @@ st.set_page_config(
     layout="wide"
 )
 
-# Custom CSS Inject untuk mempercantik UI Streamlit agar tidak kaku/flat
 st.markdown("""
     <style>
-    /* Gradient Background untuk Header */
     .main-header {
-        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
         padding: 24px;
         border-radius: 16px;
         color: white;
         margin-bottom: 25px;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
     }
-    
-    /* Styling Card Container */
-    .stCard {
-        background-color: #ffffff;
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        border: 1px solid #e2e8f0;
-        margin-bottom: 20px;
-    }
-    
-    /* Tombol Generate Custom Gradient */
     div.stButton > button:first-child {
         background: linear-gradient(90deg, #2563eb 0%, #1d4ed8 100%);
         color: white;
@@ -44,12 +30,6 @@ st.markdown("""
         height: 48px;
         border: none;
         box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-        transition: all 0.3s ease;
-    }
-    div.stButton > button:first-child:hover {
-        background: linear-gradient(90deg, #1d4ed8 0%, #1e40af 100%);
-        transform: translateY(-2px);
-        box-shadow: 0 6px 15px rgba(37, 99, 235, 0.4);
     }
     </style>
 """, unsafe_allow_html=True)
@@ -58,7 +38,7 @@ st.markdown("""
 st.markdown("""
     <div class="main-header">
         <h1 style="margin:0; font-size: 2.2rem;">🏛️ DELUXY.Ai Engine</h1>
-        <p style="margin-top: 5px; opacity: 0.8; font-size: 1rem;">Architectural 3D Modeling, Structural RAB Engineering, & Strategic Client Advisory</p>
+        <p style="margin-top: 5px; opacity: 0.8; font-size: 1rem;">AI Architectural Dynamic 3D Modeling, Structural RAB Engineering, & Client Advisory</p>
         <p style="margin-top: 10px; font-weight: 600; color: #38bdf8;">Lead Engineer & Developer: Daffa Hendrawinata</p>
     </div>
 """, unsafe_allow_html=True)
@@ -77,7 +57,7 @@ with col_input:
         height=100
     )
     
-    budget = st.number_input("Target Budget Klien (Rp):", min_value=100000000, value=600000000, step=25000000, format="%d")
+    budget = st.number_input("Target Budget Klien (Rp):", min_value=100000000, value=600000000, step=50000000, format="%d")
     gaya = st.selectbox("Gaya Fasad Arsitektur:", [
         "Minimalis Modern (Clean Glass & Wood)", 
         "Skandinavia / Japandi (Warm Earthy & White)", 
@@ -96,7 +76,7 @@ with col_input:
     btn_generate = st.button("🚀 Render Model 3D & Kalkulasi Engineering", use_container_width=True)
 
 # -------------------------------------------------------------------
-# ENGINE MODEL 3D DENGAN LIGHTING & TEXTURED MATERIAL
+# HELPER DYNAMIC 3D SHAPES
 # -------------------------------------------------------------------
 def add_3d_block(fig, x0, x1, y0, y1, z0, z1, color, opacity=1.0, name=""):
     x = [x0, x1, x1, x0, x0, x1, x1, x0]
@@ -108,62 +88,71 @@ def add_3d_block(fig, x0, x1, y0, y1, z0, z1, color, opacity=1.0, name=""):
     
     fig.add_trace(go.Mesh3d(
         x=x, y=y, z=z, i=i, j=j, k=k,
-        color=color,
-        opacity=opacity,
+        color=color, opacity=opacity,
         lighting=dict(ambient=0.65, diffuse=0.85, fresnel=0.3, specular=0.5, roughness=0.35),
         lightposition=dict(x=150, y=200, z=300),
         name=name, showlegend=False
     ))
 
-def generate_textured_3d_model(p, l, jml_lantai, kolam):
+# GENERATOR 3D DINAMIS (BENTUK BERBEDA-BEDA SESUAI BUDGET & LANTAI)
+def generate_dynamic_3d_model(p, l, jml_lantai, bg, gaya_pilihan, kolam):
     fig = go.Figure()
-    h_total = 3.6 * jml_lantai
-
-    # Base Ground & Rumput Lanskap
-    add_3d_block(fig, -2, p+2, -2, l+2, -0.2, 0.0, '#386641', name="Rumput Taman")
     
-    # Carport
+    # Palet Warna Sesuai Gaya
+    if "Industrial" in gaya_pilihan:
+        c_wall = '#3A3A3A'; c_accent = '#8D0801'; c_frame = '#111111'
+    elif "Skandinavia" in gaya_pilihan:
+        c_wall = '#F4F1DE'; c_accent = '#E07A5F'; c_frame = '#3D405B'
+    elif "Mewah" in gaya_pilihan:
+        c_wall = '#E9ECEF'; c_accent = '#D4AF37'; c_frame = '#212529'
+    else: # Minimalis
+        c_wall = '#F8F9FA'; c_accent = '#6C584C'; c_frame = '#1A1A1A'
+
+    # 1. Base Site & Lanskap
+    add_3d_block(fig, -2, p+2, -2, l+2, -0.2, 0.0, '#2D6A4F', name="Taman")
     add_3d_block(fig, 0, p*0.35, -1.8, 0.0, 0.0, 0.08, '#8D99AE', name="Carport")
 
-    # Pedestal Utama
-    add_3d_block(fig, 0, p*0.65, 0, l*0.8, 0.0, 0.2, '#E9ECEF', name="Pedestal")
+    # 2. VARIASI MASSA BANGUNAN BERDASARKAN LANTAI & BUDGET
+    if jml_lantai == 1:
+        # BENTUK 1: COMPACT SINGLE MASS WITH EXTENDED CANOPY
+        add_3d_block(fig, 0, p*0.6, 0, l*0.75, 0.0, 3.5, c_wall, name="Massa Lantai 1")
+        add_3d_block(fig, p*0.1, p*0.5, -0.05, 0.05, 0.0, 3.5, c_accent, name="Accent Wall")
+        
+        # Atap Pelana / Minimalis Flat Roof
+        x_roof = [0, p*0.6, p*0.6, 0, (p*0.6)/2]
+        y_roof = [0, 0, l*0.75, l*0.75, (l*0.75)/2]
+        z_roof = [3.5, 3.5, 3.5, 3.5, 5.2]
+        fig.add_trace(go.Mesh3d(x=x_roof, y=y_roof, z=z_roof, i=[0,1,2,3], j=[1,2,3,0], k=[4,4,4,4], color='#2B2D42'))
 
-    # Dinding Utama
-    add_3d_block(fig, 0, p*0.65, 0, l*0.8, 0.2, h_total, '#F8F9FA', opacity=0.98, name="Dinding Utama")
+    else: # 2 LANTAI
+        if bg < 700000000:
+            # BENTUK 2: L-SHAPE MODERN COMPACT (BUDGET MENENGAH)
+            # Massa Lantai 1 (Main Living)
+            add_3d_block(fig, 0, p*0.65, 0, l*0.5, 0.0, 3.5, c_wall, name="L1 Utama")
+            add_3d_block(fig, p*0.3, p*0.65, l*0.5, l*0.8, 0.0, 3.5, c_wall, name="L1 Sayap")
+            # Massa Lantai 2 Stacked
+            add_3d_block(fig, 0, p*0.65, 0, l*0.5, 3.5, 6.8, c_accent, opacity=0.95, name="L2 Upper Box")
+            # Cantilever Canopy
+            add_3d_block(fig, -0.3, p*0.4, -0.5, 0.2, 3.4, 3.6, c_frame, name="Cantilever Canopy")
 
-    # Panel Fasad
-    add_3d_block(fig, p*0.22, p*0.65, -0.04, 0.02, 0.2, h_total, '#6C584C', name="Panel Kayu Fasad")
+        else:
+            # BENTUK 3: MODERN LUXURY STACKED CUBES (BUDGET TINGGI)
+            # Lantai 1 Glass & Concrete Base
+            add_3d_block(fig, 0, p*0.7, 0, l*0.8, 0.0, 3.6, c_wall, name="L1 Glass Podium")
+            # Lantai 2 Overhanging Box (Massa Melayang Modern)
+            add_3d_block(fig, -p*0.05, p*0.55, -0.3, l*0.6, 3.6, 7.2, c_accent, name="L2 Overhanging Cube")
+            # Feature Frame
+            add_3d_block(fig, -p*0.08, p*0.58, -0.35, -0.28, 3.5, 7.3, c_frame, name="Feature Frame Steel")
+            # Balcony Glass
+            add_3d_block(fig, -p*0.05, p*0.55, -0.3, -0.25, 7.2, 8.1, '#00B4D8', opacity=0.4, name="Railing Kaca")
 
-    # Pintu Utama & Detail Kusen
-    add_3d_block(fig, p*0.06, p*0.18, -0.05, 0.02, 0.2, 2.4, '#2B1B17', name="Kusen Pintu")
-    add_3d_block(fig, p*0.07, p*0.17, -0.06, -0.01, 0.2, 2.35, '#A77464', name="Daun Pintu Kayu")
-    add_3d_block(fig, p*0.15, p*0.16, -0.09, -0.05, 1.1, 1.3, '#D4AF37', name="Gagang Pintu")
+    # 3. KACA & BUKAAN
+    add_3d_block(fig, p*0.1, p*0.35, -0.05, 0.02, 0.8, 2.8, '#00B4D8', opacity=0.55, name="Jendela Kaca")
 
-    # Jendela Kaca Depan
-    add_3d_block(fig, p*0.25, p*0.58, -0.05, 0.02, 0.8, h_total*0.75, '#1A1A1A', name="Kusen Jendela")
-    add_3d_block(fig, p*0.26, p*0.57, -0.06, -0.01, 0.85, h_total*0.73, '#00B4D8', opacity=0.55, name="Kaca Transparan")
-
-    # Detail Lantai 2 (Jikalau 2 lantai)
-    if jml_lantai == 2:
-        add_3d_block(fig, -0.2, p*0.67, -0.4, 0.4, 3.5, 3.65, '#212529', name="Canopy Lantai 2")
-        add_3d_block(fig, p*0.05, p*0.6, -0.35, -0.3, 3.65, 4.4, '#4EA8DE', opacity=0.4, name="Balkon Kaca")
-
-    # Atap Limas Modern
-    x_roof = [0, p*0.65, p*0.65, 0, (p*0.65)/2]
-    y_roof = [0, 0, l*0.8, l*0.8, (l*0.8)/2]
-    z_roof = [h_total, h_total, h_total, h_total, h_total + 2.2]
-    fig.add_trace(go.Mesh3d(
-        x=x_roof, y=y_roof, z=z_roof,
-        i=[0,1,2,3], j=[1,2,3,0], k=[4,4,4,4],
-        color='#3D5A80', opacity=1.0,
-        lighting=dict(ambient=0.5, diffuse=0.9, fresnel=0.2),
-        name="Atap Modern"
-    ))
-
-    # Kolam Renang
+    # 4. KOLAM RENANG (JIKA DIpilih)
     if kolam:
         add_3d_block(fig, p*0.68, p*0.96, 0, l*0.8, 0.0, 0.1, '#D4A373', name="Deck Kayu")
-        add_3d_block(fig, p*0.72, p*0.92, l*0.12, l*0.68, -0.8, 0.0, '#0077B6', name="Dinding Kolam")
+        add_3d_block(fig, p*0.72, p*0.92, l*0.12, l*0.68, -0.8, 0.0, '#0077B6', name="Kolam Renang")
         add_3d_block(fig, p*0.725, p*0.915, l*0.13, l*0.67, -0.7, -0.05, '#48CAE4', opacity=0.75, name="Air Kolam")
 
     fig.update_layout(
@@ -179,7 +168,7 @@ def generate_textured_3d_model(p, l, jml_lantai, kolam):
     return fig
 
 # -------------------------------------------------------------------
-# ENGINE KALKULASI RAB DETAIL & MATERIAL AHSP SNI
+# ENGINE KALKULASI RAB & MATERIAL
 # -------------------------------------------------------------------
 def calculate_engineering_rab(p, l, jml_lantai, bg_klien, kolam):
     luas_tanah = p * l
@@ -233,60 +222,61 @@ def generate_dxf_file(p, l):
     return out.getvalue()
 
 # -------------------------------------------------------------------
-# DISPLAY OUTPUT & GALLERY REFERENSI REALISTIS
+# DISPLAY OUTPUT & GALLERY REFERENSI REALISTIS DARI GOOGLE / UNSPLASH
 # -------------------------------------------------------------------
 with col_output:
     if btn_generate:
         if prompt:
-            st.success("✅ Pemodelan 3D & Kalkulasi Engineering RAB Berhasil Disusun!")
+            st.success("✅ Pemodelan 3D Dinamis & Kalkulasi Engineering RAB Berhasil Disusun!")
             
             rab = calculate_engineering_rab(panjang, lebar, lantai, budget, ada_kolam)
             
-            tab_3d, tab_gallery, tab_rab, tab_solusi, tab_2d = st.tabs([
-                "🏠 Model 3D Structural", 
-                "🖼️ Moodboard & Referensi Desain", 
+            tab_3d, tab_render, tab_rab, tab_solusi, tab_2d = st.tabs([
+                "🏠 Model 3D Massing Dinamis", 
+                "🖼️ Render Realistis Fasad & Interior", 
                 "📊 Breakdown RAB & Material SNI", 
                 "💡 Konsultasi Strategis Klien",
                 "🏛️ Layout Denah 2D"
             ])
             
-            # --- TAB 1: MODEL 3D INTERAKTIF ---
+            # --- TAB 1: MODEL 3D DINAMIS BERBEDA BENTUK ---
             with tab_3d:
-                st.subheader("🏠 Model 3D Massing & Fasad")
-                st.caption("Gunakan mouse untuk merotasi, memperbesar, dan melihat posisi bukaan serta struktur:")
-                st.plotly_chart(generate_textured_3d_model(panjang, lebar, lantai, ada_kolam), use_container_width=True)
+                st.subheader("🏠 Model 3D Geometri Dinamis (Mengikuti Budget & Gaya)")
+                st.caption(f"Bentuk geometri 3D disesuaikan otomatis dengan gaya **{gaya}** & skenario budget **Rp {budget:,.0f}**:")
+                st.plotly_chart(generate_dynamic_3d_model(panjang, lebar, lantai, budget, gaya, ada_kolam), use_container_width=True)
 
-            # --- TAB 2: REFERENSI MOODBOARD INTERIOR & EKSTERIOR (UNSPLASH ARCHITECTURE) ---
-            with tab_gallery:
-                st.subheader("🖼️ Konsep Referensi Arsitektur & Interior Pilihan")
-                st.caption("Koleksi referensi desain nyata beresolusi tinggi untuk disajikan kepada konsumen:")
+            # --- TAB 2: VISUAL RENDER GOOGLE / UNSPLASH DENGAN OPSI PILIHAN TERBAIK ---
+            with tab_render:
+                st.subheader("🖼️ Galeri Visual Fasad & Interior Pilihan Sesuai Konsep")
+                st.caption("Referensi visual arsitektur kualitas HD dari repositori Google/Unsplash untuk dipresentasikan ke konsumen:")
                 
-                # Fasad Utama
-                st.markdown("#### 1. Referensi Fasad Eksterior Modern")
-                st.image(
-                    "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80", 
-                    caption="Konsep Fasad Minimalis Modern - Penggabungan Elemen Kayu, Kaca, & Beton", 
-                    use_container_width=True
-                )
+                # Fasad Gambar Berbeda Sesuai Budget
+                if budget > 800000000:
+                    img_fasad_url = "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80"
+                    caption_fasad = "Konsep Fasad Modern Luxury - Stacked Cube & Open Glass Space"
+                elif budget >= 500000000:
+                    img_fasad_url = "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80"
+                    caption_fasad = "Konsep Fasad Minimalis 2 Lantai - Combination Wood & Off-White Wall"
+                else:
+                    img_fasad_url = "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=1200&q=80"
+                    caption_fasad = "Konsep Fasad Compact 1 Lantai - Efficient Clean Design"
                 
+                st.image(img_fasad_url, caption=caption_fasad, use_container_width=True)
                 st.markdown("---")
                 
-                # Interior Kamar Tidur & Dapur (Side by Side)
-                col_g1, col_g2 = st.columns(2)
-                
-                with col_g1:
-                    st.markdown("#### 2. Konsep Kamar Tidur Utama")
+                col_i1, col_i2 = st.columns(2)
+                with col_i1:
+                    st.markdown("#### 🛌 Konsep Kamar Tidur Utama (Master Bedroom)")
                     st.image(
                         "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?auto=format&fit=crop&w=800&q=80", 
                         caption="Kamar Tidur Utama - Warm Wood Backlight & Ambient Lighting", 
                         use_container_width=True
                     )
-                
-                with col_g2:
-                    st.markdown("#### 3. Konsep Dapur & Dining Area")
+                with col_i2:
+                    st.markdown("#### 🍳 Konsep Dapur & Dining Area (Kitchen)")
                     st.image(
                         "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=800&q=80", 
-                        caption="Dapur Modern - Island Table & Finished Marble Top", 
+                        caption="Dapur Modern - Marble Top Counter & Built-in Cabinet", 
                         use_container_width=True
                     )
 
@@ -354,4 +344,3 @@ with col_output:
             )
         else:
             st.warning("Silakan ketikkan deskripsi konsep impian terlebih dahulu.")
-        
