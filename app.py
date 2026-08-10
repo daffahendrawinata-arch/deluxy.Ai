@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 
 # Konfigurasi Halaman DELUXY.Ai
 st.set_page_config(
-    page_title="DELUXY.Ai - Professional CAD & Engineering AI", 
+    page_title="DELUXY.Ai - Architectural & Engineering AI", 
     page_icon="🏛️", 
     layout="wide"
 )
@@ -15,7 +15,6 @@ st.title("🏛️ DELUXY.Ai - Architectural & Engineering AI")
 st.caption("Platform AI Generator Desain Rumah 3D Lengkap & Perhitungan Engineering RAB")
 st.markdown("---")
 
-# Layout 2 Kolom
 col_input, col_output = st.columns([1, 2])
 
 with col_input:
@@ -31,84 +30,104 @@ with col_input:
     panjang = st.slider("Panjang Lahan (m):", 10, 30, 15)
     lebar = st.slider("Lebar Lahan (m):", 6, 20, 10)
     lantai = st.radio("Jumlah Lantai:", [1, 2])
+    tampilkan_atap = st.checkbox("Tampilkan Atap di 3D", value=False)
     
     btn_generate = st.button("🚀 Kalkulasi & Generate Desain 3D", use_container_width=True)
 
-# Fungsi Pembuat Visualisasi 3D Komprehensif (Plotly Engine)
-def generate_3d_house(p, l, h_lantai, gaya_arch):
+# 1. Denah 2D Interaktif dengan Label Ruangan
+def generate_2d_floorplan(p, l):
     fig = go.Figure()
 
-    # 1. Fondasi / Lantai Dasar
-    fig.add_trace(go.Mesh3d(
-        x=[0, p, p, 0, 0, p, p, 0],
-        y=[0, 0, l, l, 0, 0, l, l],
-        z=[-0.2, -0.2, -0.2, -0.2, 0, 0, 0, 0],
-        color='gray', opacity=0.8, name="Lantai & Fondasi"
-    ))
+    # Dinding Luar
+    fig.add_shape(type="rect", x0=0, y0=0, x1=p, y1=l, line=dict(color="black", width=3), fillcolor="lightgray")
+    
+    # Ruang Tamu / Keluarga
+    fig.add_shape(type="rect", x0=0, y0=0, x1=p*0.5, y1=l*0.5, fillcolor="#FFE4C4", line=dict(color="black", width=2))
+    fig.add_trace(go.Scatter(x=[p*0.25], y=[l*0.25], text=["<b>Ruang Tamu & Utama</b>"], mode="text"))
 
-    # 2. Dinding Utam
+    # Kamar Tidur Utama
+    fig.add_shape(type="rect", x0=0, y0=l*0.5, x1=p*0.4, y1=l, fillcolor="#FFD700", line=dict(color="black", width=2))
+    fig.add_trace(go.Scatter(x=[p*0.2], y=[l*0.75], text=["<b>Kamar Utama</b>"], mode="text"))
+
+    # Kamar Anak / Mandi
+    fig.add_shape(type="rect", x0=p*0.4, y0=l*0.5, x1=p*0.7, y1=l, fillcolor="#ADD8E6", line=dict(color="black", width=2))
+    fig.add_trace(go.Scatter(x=[p*0.55], y=[l*0.75], text=["<b>Kamar Anak & KM</b>"], mode="text"))
+
+    # Dapur & Makan
+    fig.add_shape(type="rect", x0=p*0.5, y0=0, x1=p*0.7, y1=l*0.5, fillcolor="#D3D3D3", line=dict(color="black", width=2))
+    fig.add_trace(go.Scatter(x=[p*0.6], y=[l*0.25], text=["<b>Dapur</b>"], mode="text"))
+
+    # Kolam Renang / Taman Belakang
+    fig.add_shape(type="rect", x0=p*0.7, y0=0, x1=p, y1=l, fillcolor="#00FFFF", line=dict(color="black", width=2))
+    fig.add_trace(go.Scatter(x=[p*0.85], y=[l*0.5], text=["<b>Kolam Renang<br>& Taman</b>"], mode="text"))
+
+    fig.update_xaxes(title="Lebar (m)", range=[-1, p+1])
+    fig.update_yaxes(title="Panjang (m)", range=[-1, l+1], scaleanchor="x", scaleratio=1)
+    fig.update_layout(showlegend=False, height=450, margin=dict(l=10, r=10, t=30, b=10), title="Denah 2D Layout Ruangan")
+    return fig
+
+# 2. Model 3D Transparan / Open Roof
+def generate_3d_house_detailed(p, l, h_lantai, show_roof):
+    fig = go.Figure()
+
+    # Dinding Luar Transparan
     fig.add_trace(go.Mesh3d(
         x=[0, p, p, 0, 0, p, p, 0],
         y=[0, 0, l, l, 0, 0, l, l],
         z=[0, 0, 0, 0, h_lantai, h_lantai, h_lantai, h_lantai],
-        color='whitesmoke', opacity=0.5, name="Dinding Utama"
+        color='lightgray', opacity=0.2, name="Dinding Luar"
     ))
 
-    # 3. Kaca & Jendela Depan
+    # Sekat Kamar Utama
     fig.add_trace(go.Mesh3d(
-        x=[p*0.2, p*0.5, p*0.5, p*0.2, p*0.2, p*0.5, p*0.5, p*0.2],
-        y=[0, 0, 0, 0, 0, 0, 0, 0],
-        z=[0.5, 0.5, h_lantai*0.8, h_lantai*0.8, 0.5, 0.5, h_lantai*0.8, h_lantai*0.8],
-        color='cyan', opacity=0.8, name="Fasad Kaca / Pintu Utama"
+        x=[p*0.4, p*0.4, p*0.4, p*0.4, 0, p*0.4, p*0.4, 0],
+        y=[l*0.5, l*0.5, l, l, l*0.5, l*0.5, l, l],
+        z=[0, 0, 0, 0, h_lantai*0.8, h_lantai*0.8, h_lantai*0.8, h_lantai*0.8],
+        color='gold', opacity=0.6, name="Kamar Tidur Utama"
     ))
 
-    # 4. Atap
+    # Sekat Kamar Anak
     fig.add_trace(go.Mesh3d(
-        x=[0, p, p/2, 0, p, p/2],
-        y=[0, 0, l/2, l, l, l/2],
-        z=[h_lantai, h_lantai, h_lantai + 2.5, h_lantai, h_lantai, h_lantai + 2.5],
-        color='firebrick', opacity=0.9, name="Atap Bangunan"
+        x=[p*0.4, p*0.7, p*0.7, p*0.4, p*0.4, p*0.7, p*0.7, p*0.4],
+        y=[l*0.5, l*0.5, l, l, l*0.5, l*0.5, l, l],
+        z=[0, 0, 0, 0, h_lantai*0.8, h_lantai*0.8, h_lantai*0.8, h_lantai*0.8],
+        color='lightblue', opacity=0.6, name="Kamar Anak"
     ))
 
-    # 5. Kolam Renang (Jika Ada di Prompt)
-    if "kolam" in prompt.lower():
-        p_k, l_k = p * 0.3, l * 0.4
+    # Kolam Renang
+    fig.add_trace(go.Mesh3d(
+        x=[p*0.7, p, p, p*0.7, p*0.7, p, p, p*0.7],
+        y=[0, 0, l, l, 0, 0, l, l],
+        z=[-1, -1, -1, -1, 0, 0, 0, 0],
+        color='cyan', opacity=0.8, name="Kolam Renang"
+    ))
+
+    # Atap (Opsional lewat Checkbox)
+    if show_roof:
         fig.add_trace(go.Mesh3d(
-            x=[p*0.6, p*0.6+p_k, p*0.6+p_k, p*0.6, p*0.6, p*0.6+p_k, p*0.6+p_k, p*0.6],
-            y=[l*0.5, l*0.5, l*0.5+l_k, l*0.5+l_k, l*0.5, l*0.5, l*0.5+l_k, l*0.5+l_k],
-            z=[-1.2, -1.2, -1.2, -1.2, 0, 0, 0, 0],
-            color='deepskyblue', opacity=0.8, name="Kolam Renang"
+            x=[0, p, p/2, 0, p, p/2],
+            y=[0, 0, l/2, l, l, l/2],
+            z=[h_lantai, h_lantai, h_lantai + 2, h_lantai, h_lantai, h_lantai + 2],
+            color='firebrick', opacity=0.7, name="Atap"
         ))
 
     fig.update_layout(
-        scene=dict(
-            xaxis_title='Panjang (m)',
-            yaxis_title='Lebar (m)',
-            zaxis_title='Tinggi (m)',
-            aspectmode='data'
-        ),
-        margin=dict(r=10, l=10, b=10, t=10),
-        height=500
+        scene=dict(xaxis_title='P (m)', yaxis_title='L (m)', zaxis_title='T (m)', aspectmode='data'),
+        margin=dict(r=10, l=10, b=10, t=10), height=450
     )
     return fig
 
-# Fungsi Perhitungan Engineering (RAB & Material)
+# Engineering Data
 def calculate_engineering_data(p, l, jml_lantai, bg_budget):
     luas_tanah = p * l
-    luas_bangunan = luas_tanah * 0.6 * jml_lantai  # KDB ~60%
-    
-    # Biaya rata-rata per m2 bangunan
+    luas_bangunan = luas_tanah * 0.6 * jml_lantai
     harga_per_m2 = 4500000 if jml_lantai == 1 else 5500000
     est_biaya_konstruksi = luas_bangunan * harga_per_m2
-    
-    # Estimasi Material
     semen_bag = int(luas_bangunan * 1.2)
     bata_m2 = int(luas_bangunan * 70)
     besi_beton_batang = int(luas_bangunan * 2.5)
-    
     return luas_tanah, luas_bangunan, est_biaya_konstruksi, semen_bag, bata_m2, besi_beton_batang
 
-# Fungsi Ekspor CAD Native (.dxf)
 def generate_dxf_file(p, l):
     doc = ezdxf.new("R2010")
     msp = doc.modelspace()
@@ -120,17 +139,18 @@ def generate_dxf_file(p, l):
 with col_output:
     if btn_generate:
         if prompt:
-            st.success("✅ Generasi Desain & Kalkulasi Teknik Berhasil Dilakukan!")
-            
-            # Hitung Perhitungan Engineering
+            st.success("✅ Generasi Tata Ruang, Denah 2D & Model 3D Berhasil!")
             lt, lb, est_biaya, semen, bata, besi = calculate_engineering_data(panjang, lebar, lantai, budget)
             
-            # Tab Navigasi Visual & Data Teknik
-            tab1, tab2, tab3 = st.tabs(["🏛️ Model 3D Arsitektur", "📊 Perhitungan Engineering & RAB", "📄 Spesifikasi Ruangan"])
+            tab1, tab2, tab3 = st.tabs(["📐 Denah Layout & Visual 3D", "📊 Perhitungan Engineering RAB", "📄 Spesifikasi Ruangan"])
             
             with tab1:
-                st.write("**Visualisasi Struktur Rumah 3D (Putar, Zoom, & Tilt 360°):**")
-                fig_3d = generate_3d_house(panjang, lebar, 3.5 * lantai, gaya)
+                st.subheader("1. Denah Layout Ruangan 2D")
+                fig_2d = generate_2d_floorplan(panjang, lebar)
+                st.plotly_chart(fig_2d, use_container_width=True)
+                
+                st.subheader("2. Visualisasi Struktur 3D Open-Roof")
+                fig_3d = generate_3d_house_detailed(panjang, lebar, 3.5 * lantai, tampilkan_atap)
                 st.plotly_chart(fig_3d, use_container_width=True)
                 
             with tab2:
@@ -141,7 +161,7 @@ with col_output:
                 m3.metric("Estimasi Biaya", f"Rp {est_biaya:,.0f}")
                 
                 if est_biaya > budget:
-                    st.warning(f"⚠️ **Peringatan Budget:** Estimasi biaya konstruksi (Rp {est_biaya:,.0f}) melebihi budget target Anda (Rp {budget:,.0f}). Disarankan mengoptimalkan luas bangunan atau material.")
+                    st.warning(f"⚠️ **Peringatan Budget:** Estimasi biaya konstruksi (Rp {est_biaya:,.0f}) melebihi budget target Anda (Rp {budget:,.0f}).")
                 else:
                     st.info(f"💡 **Status Budget:** Desain ini sesuai dengan target alokasi budget Anda.")
                 
@@ -153,21 +173,17 @@ with col_output:
 
             with tab3:
                 st.subheader("🏡 Rencana Tata Ruang Operasional")
-                st.write(f"**Distribusi Ruangan Otomatis ({lantai} Lantai):**")
-                st.write("- 🛋️ **Ruang Tamu & Keluarga:** Integrated Open Space")
-                st.write("- 🛏️ **Kamar Tidur Utama:** 1 Unit (Termasuk En-suite Bathroom)")
-                st.write("- 🛏️ **Kamar Tidur Anak:** 1-2 Unit")
-                st.write("- 🍳 **Dapur & Area Makan:** Modern Minimalis")
-                if "kolam" in prompt.lower():
-                    st.write("- 🏊 **Area Servis / Kolam Renang:** Plunge Pool Outdoor")
+                st.write("- 🛋️ **Ruang Tamu & Dapur:** Area Depan & Tengah")
+                st.write("- 🛏️ **Kamar Utama:** Area Kiri Atas (Kuning)")
+                st.write("- 🛏️ **Kamar Anak:** Area Tengah Atas (Biru Muda)")
+                st.write("- 🏊 **Kolam Renang & Taman:** Area Samping/Belakang (Biru Laut)")
 
             st.markdown("---")
-            # Unduh File CAD Native
             dxf_data = generate_dxf_file(panjang, lebar)
             st.download_button(
-                label="⬇️ Unduh File CAD Native Kompleks (.dxf)",
+                label="⬇️ Unduh File CAD Native (.dxf)",
                 data=dxf_data,
-                file_name=f"DELUXY_Engineering_{panjang}x{lebar}.dxf",
+                file_name=f"DELUXY_Layout_{panjang}x{lebar}.dxf",
                 mime="application/dxf",
                 use_container_width=True
             )
