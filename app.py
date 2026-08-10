@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 # -------------------------------------------------------------------
 # KONFIGURASI HALAMAN & ATRIBUSI PENCIPTA
 # -------------------------------------------------------------------
-NAMA_PENCIPTA = "M.Daffa Hendra WInata, S.T, CPS. Awardee beasiswa unggulan"  # Ganti dengan nama Anda / Studio Anda
+NAMA_PENCIPTA = "Nama Anda"  # Ganti dengan nama / studio Anda
 
 st.set_page_config(
     page_title=f"DELUXY.Ai - Designed by {NAMA_PENCIPTA}", 
@@ -41,13 +41,6 @@ st.markdown(f"""
         border-radius: 8px;
         font-weight: 600;
     }}
-    .card-rab {{
-        background-color: #ffffff;
-        padding: 16px;
-        border-radius: 10px;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-    }}
     .footer-text {{
         text-align: center;
         padding: 20px;
@@ -62,10 +55,10 @@ st.markdown(f"""
 # Header Utama
 st.markdown(f"""
     <div class="main-header">
-        <h2 style="margin:0;">🏛️ DELUXY.Ai - Real Architecture Studio & Engineering RAB</h2>
-        <div class="creator-badge">Lead Architect & Creator: {NAMA_PENCIPTA}</div>
+        <h2 style="margin:0;">🏛️ DELUXY.Ai - Real Architectural Studio & Engineering Engine</h2>
+        <div class="creator-badge">Lead Architect & Engine Developer: {NAMA_PENCIPTA}</div>
         <p style="margin-top: 10px; opacity: 0.85; margin-bottom:0;">
-            Platform Kurasi Desain Fasad Arsitek Nyata, Pemodelan Lahan, & Engine Kalkulasi SNI RAB
+            Platform Kurasi Desain Fasad Arsitek Nyata, Pemodelan Tapak Lahan, & Hitungan Material/RAB SNI Presisi
         </p>
     </div>
 """, unsafe_allow_html=True)
@@ -84,7 +77,7 @@ with st.sidebar:
     lantai = st.radio("Jumlah Lantai:", [1, 2])
     ada_kolam = st.checkbox("Fasilitas Kolam Renang Private", value=True)
     
-    gaya = st.selectbox("Style Fasad Arsitektur (Real Design):", [
+    gaya = st.selectbox("Style Fasad Arsitektur (Proyek Nyata):", [
         "Minimalis Modern Tropis", 
         "Japandi / Warm Timber Scandinavian", 
         "Industrial Concrete Modern", 
@@ -95,12 +88,12 @@ with st.sidebar:
     kelas_mat = st.select_slider("Spesifikasi Material:", options=["Standard", "Medium/Pro", "Luxury"])
 
 # -------------------------------------------------------------------
-# DATABASE DESAIN FASAD NYATA (CURATED ARCHITECTURE)
+# DATABASE FOTO PROYEK ARSITEK NYATA (CURATED ARCHITECTURE PHOTOGRAPHY)
 # -------------------------------------------------------------------
 PROYEK_DESAIN = {
     "Minimalis Modern Tropis": {
         "fasad": "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1400&q=80",
-        "title": "Tropics Modern Box House - Arch Villa Project",
+        "title": "Tropics Modern Box House - Real Project Reference",
         "alt1": "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80",
         "alt2": "https://images.unsplash.com/photo-1600585152220-90363fe7e115?auto=format&fit=crop&w=800&q=80",
         "kamar": "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?auto=format&fit=crop&w=800&q=80",
@@ -108,7 +101,7 @@ PROYEK_DESAIN = {
     },
     "Japandi / Warm Timber Scandinavian": {
         "fasad": "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1400&q=80",
-        "title": "Nordic Timber Siding & Clean White Structure",
+        "title": "Nordic Timber Siding & Natural Clean Finish",
         "alt1": "https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=800&q=80",
         "alt2": "https://images.unsplash.com/photo-1600573472592-401b489a3cdc?auto=format&fit=crop&w=800&q=80",
         "kamar": "https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?auto=format&fit=crop&w=800&q=80",
@@ -116,7 +109,7 @@ PROYEK_DESAIN = {
     },
     "Industrial Concrete Modern": {
         "fasad": "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1400&q=80",
-        "title": "Exposed Concrete Facade with Black Steel Lattice",
+        "title": "Exposed Concrete Facade with Black Steel Elements",
         "alt1": "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=800&q=80",
         "alt2": "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=800&q=80",
         "kamar": "https://images.unsplash.com/photo-1560185893-a55cbc8c57e8?auto=format&fit=crop&w=800&q=80",
@@ -124,7 +117,7 @@ PROYEK_DESAIN = {
     },
     "Luxury Contemporary Glass Villa": {
         "fasad": "https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=1400&q=80",
-        "title": "Cantilever Glass Box House & Warm Landscape Lighting",
+        "title": "Cantilever Glass Box House & Warm Architectural Lighting",
         "alt1": "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=800&q=80",
         "alt2": "https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=800&q=80",
         "kamar": "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=800&q=80",
@@ -136,15 +129,15 @@ OUTDOOR_KOLAM = "https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?au
 OUTDOOR_TAMAN = "https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&w=1000&q=80"
 
 # -------------------------------------------------------------------
-# ENGINE PERHITUNGAN RAB ACCURATE (BERDASARKAN ANALISIS SNI)
+# KALKULATOR MATERIAL & RAB REALISTIS (BERDASARKAN METODE AHSP/SNI)
 # -------------------------------------------------------------------
 def hitung_rab_presisi(p, l, jml_lantai, kolam, spesifikasi):
     luas_tanah = p * l
-    kdb = 0.60  # Koefisien Dasar Bangunan (60% lahan terbangun)
+    kdb = 0.60  # Koefisien Dasar Bangunan 60%
     luas_lantai_1 = luas_tanah * kdb
     luas_bangunan = luas_lantai_1 * (1.80 if jml_lantai == 2 else 1.0)
     
-    # Biaya per m2 berdasarkan spesifikasi material
+    # Estimasi biaya per m2 realistis berdasarkan spesifikasi
     harga_m2_map = {
         "Standard": 4500000 if jml_lantai == 1 else 5200000,
         "Medium/Pro": 5500000 if jml_lantai == 1 else 6300000,
@@ -153,27 +146,27 @@ def hitung_rab_presisi(p, l, jml_lantai, kolam, spesifikasi):
     unit_rate = harga_m2_map[spesifikasi]
     biaya_konstruksi = luas_bangunan * unit_rate
     
-    # Biaya Tambahan Kolam Renang (Finishing Mosaic & System Pump)
+    # Biaya Tambahan Kolam Renang (Sistem Pompa, Mosaic Tile & Decking)
     biaya_kolam = (luas_tanah * 0.15 * 5500000) + 25000000 if kolam else 0
     
     total_rab = biaya_konstruksi + biaya_kolam
     
-    # Kebutuhan Material SNI Presisi
-    hebel_m3 = luas_bangunan * 0.22         # 1 m2 dinding butuh ±0.088 m3 x faktor pengali luas dinding
-    semen_sak = luas_bangunan * 1.35        # Semen 50kg untuk pasangan + plester + acian
-    pasir_m3 = luas_bangunan * 0.42         # Pasir pasang & struktur
-    besi_kg = luas_bangunan * 32.5          # Estimasi tulangan beton per m2
-    keramik_m2 = luas_bangunan * 1.10      # Granit/Keramik + waste 10%
+    # Estimasi Kebutuhan Material SNI Presisi
+    hebel_m3 = luas_bangunan * 0.22         # Estimasi kubikasi Bata Ringan Dinding
+    semen_sak = luas_bangunan * 1.35        # Semen 50kg (pasangan, plester, acian, struktur)
+    pasir_m3 = luas_bangunan * 0.42         # Pasir pasang dan struktur
+    besi_kg = luas_bangunan * 32.5          # Estimasi tulangan besi beton per m2
+    keramik_m2 = luas_bangunan * 1.10      # Granite Tile + Waste 10%
     
-    # Breakdown Pekerjaan
+    # Breakdown Distribusi Pekerjaan Konstruksi
     breakdown = {
         "Pekerjaan Persiapan & Fondasi (12%)": total_rab * 0.12,
         "Struktur Beton Bertulang (33%)": total_rab * 0.33,
         "Dinding & Pasangan Bata (18%)": total_rab * 0.18,
-        "Kusen, Pintu & Kaca (12%)": total_rab * 0.12,
+        "Kusen, Pintu, Window Frame & Kaca (12%)": total_rab * 0.12,
         "Plafon & Rangka Atap (10%)": total_rab * 0.10,
         "Instalasi MEP & Sanitair (8%)": total_rab * 0.08,
-        "Finishing Cat & Exterior (7%)": total_rab * 0.07,
+        "Finishing Cat & Exterior Accent (7%)": total_rab * 0.07,
     }
     
     return {
@@ -217,7 +210,7 @@ def generate_site_3d(p, l, jml_lantai, kolam):
         color='#3b82f6', opacity=0.75, name="Massa Bangunan"
     ))
 
-    # Kolam Renang
+    # Area Kolam Renang
     if kolam:
         fig.add_trace(go.Mesh3d(
             x=[p*0.65, p*0.95, p*0.95, p*0.65, p*0.65, p*0.95, p*0.95, p*0.65],
@@ -256,49 +249,49 @@ if prompt:
     desain = PROYEK_DESAIN.get(gaya, PROYEK_DESAIN["Minimalis Modern Tropis"])
     
     tab_render, tab_site, tab_rab, tab_advis = st.tabs([
-        "🖼️ Desain Fasad Arsitek Nyata", 
+        "🖼️ Referensi Desain Arsitek Nyata", 
         "📐 Diagram Site Plan Lahan", 
-        "📊 Engineering RAB Presisi", 
+        "📊 Engineering RAB & Material SNI", 
         "💡 Konsultasi Strategis Klien"
     ])
     
-    # --- TAB 1: VISUAL FASAD ARSITEK NYATA ---
+    # --- TAB 1: VISUAL FASAD REAL ---
     with tab_render:
-        st.subheader(f"🖼️ Referensi Karya Arsitektur: {gaya}")
-        st.caption(f"Desain kurasi portofolio profesional disajikan oleh **{NAMA_PENCIPTA}**:")
+        st.subheader(f"🖼️ Referensi Proyek Arsitektur: {gaya}")
+        st.caption(f"Kurasi portofolio profesional disajikan oleh **{NAMA_PENCIPTA}**:")
         
         # Main Fasad
         st.image(desain['fasad'], caption=f"Fasad Utama - {desain['title']}", use_container_width=True)
         
         st.markdown("---")
-        st.write("#### 📐 Alternative Facade Views & Detail Material:")
+        st.write("#### 📐 Perspektif Alternatif & Detail Material:")
         col_a1, col_a2 = st.columns(2)
         with col_a1:
-            st.image(desain['alt1'], caption="Opsi Sudut Fasad / Side Angle View", use_container_width=True)
+            st.image(desain['alt1'], caption="Perspektif Samping / Side Angle View", use_container_width=True)
         with col_a2:
-            st.image(desain['alt2'], caption="Detail Material Textures & Lighting", use_container_width=True)
+            st.image(desain['alt2'], caption="Detail Tekstur Material & Pencahayaan", use_container_width=True)
             
         st.markdown("---")
-        st.write("#### 🛋️ Suasana Interior & Outdoor Area:")
+        st.write("#### 🛋️ Suasana Interior & Area Luar:")
         col_i1, col_i2, col_i3 = st.columns(3)
         with col_i1:
-            st.image(desain['kamar'], caption="Master Bedroom Interior", use_container_width=True)
+            st.image(desain['kamar'], caption="Interior Kamar Utama", use_container_width=True)
         with col_i2:
-            st.image(desain['dapur'], caption="Kitchen & Open Dining Space", use_container_width=True)
+            st.image(desain['dapur'], caption="Dapur & Dapur Bersih", use_container_width=True)
         with col_i3:
             img_out = OUTDOOR_KOLAM if ada_kolam else OUTDOOR_TAMAN
-            cap_out = "Backyard Swimming Pool Deck" if ada_kolam else "Tropical Inner Courtyard"
+            cap_out = "Kolam Renang Private" if ada_kolam else "Taman & Inner Courtyard"
             st.image(img_out, caption=cap_out, use_container_width=True)
 
-    # --- TAB 2: DIAGRAM SITE LAHAN ---
+    # --- TAB 2: DIAGRAM SITE ---
     with tab_site:
-        st.subheader("📐 Diagram Orientasi Massa Bangunan & Lahan")
-        st.caption("Visualisasi proporsi tapak lahan berdasarkan Koefisien Dasar Bangunan (KDB 60%):")
+        st.subheader("📐 Diagram Orientasi Tapak Lahan & Bangunan")
+        st.caption("Visualisasi proporsi tapak lahan berdasarkan KDB 60%:")
         st.plotly_chart(generate_site_3d(panjang, lebar, lantai, ada_kolam), use_container_width=True)
 
-    # --- TAB 3: BREAKDOWN RAB AKURAT ---
+    # --- TAB 3: BREAKDOWN RAB REALISTIS ---
     with tab_rab:
-        st.subheader("📊 Rencana Anggaran Biaya (RAB) & Kalkulasi SNI")
+        st.subheader("📊 Rencana Anggaran Biaya (RAB) & Estimasi Material")
         
         k1, k2, k3 = st.columns(3)
         k1.metric("Luas Lahan", f"{rab['luas_tanah']} m²")
@@ -309,13 +302,13 @@ if prompt:
         col_r1, col_r2 = st.columns([1, 1])
         
         with col_r1:
-            st.write("#### 🧱 Estimasi Material Utama (SNI Standard):")
+            st.write("#### 🧱 Estimasi Material Utama (Koefisien SNI):")
             st.markdown(f"""
-            - **Bata Ringan / Hebel:** `± {rab['hebel_m3']} m³`
+            - **Bata Ringan (Hebel):** `± {rab['hebel_m3']} m³`
             - **Semen Portland (50kg):** `± {rab['semen_sak']} Sak`
             - **Pasir Beton / Pasang:** `± {rab['pasir_m3']} m³`
-            - **Besi Beton Structur (Total):** `± {rab['besi_kg']} kg`
-            - **Granit / Keramik Utama:** `± {rab['keramik_m2']} m²`
+            - **Besi Beton Utama & Begel:** `± {rab['besi_kg']} kg`
+            - **Granit / Keramik Lantai:** `± {rab['keramik_m2']} m²`
             """)
             
         with col_r2:
@@ -325,20 +318,20 @@ if prompt:
 
     # --- TAB 4: ADVIS KONSULTASI ---
     with tab_advis:
-        st.subheader("💡 Strategic Client Advisory")
+        st.subheader("💡 Konsultasi Strategis Anggaran")
         selisih = budget - rab['total_rab']
         
         if selisih < 0:
-            st.error(f"⚠️ **Estimasi RAB Melebihi Target Budget Klien (Defisit: Rp {abs(selisih):,.0f})**")
-            st.write("**Rekomendasi Rekayasa Anggaran (*Value Engineering*):**")
-            st.write("1. Turunkan spesifikasi material ke tingkat **Standard** untuk menghemat hingga 15-20%.")
-            st.write("2. Terapkan strategi **Rumah Tumbuh** (Prioritaskan struktur utama dan Lantai 1 terlebih dahulu).")
-            st.write("3. Alihkan fasilitas kolam renang ke *Dry Garden Minimalis* untuk menghemat ± Rp 85 Juta.")
+            st.error(f"⚠️ **Estimasi RAB Melebihi Budget Klien (Defisit: Rp {abs(selisih):,.0f})**")
+            st.write("**Rekomendasi Penyesuaian Anggaran (*Value Engineering*):**")
+            st.write("1. Sesuaikan spesifikasi material ke kelas **Standard** untuk menekan biaya hingga 15-20%.")
+            st.write("2. Terapkan strategi **Rumah Tumbuh** (fokus penyelesaian struktur utama & lantai 1 dahulu).")
+            st.write("3. Alihkan area kolam renang menjadi *Dry Garden Minimalis* untuk menghemat ± Rp 85 Juta.")
         else:
-            st.success(f"✅ **Budget Klien Sangat Mencukupi (Surplus: Rp {selisih:,.0f})**")
+            st.success(f"✅ **Budget Klien Mencukupi (Surplus: Rp {selisih:,.0f})**")
             st.write("**Rekomendasi Optimalisasi Anggaran:**")
-            st.write("1. Alokasikan surplus untuk **Smart Home Automation & Solar Panel System**.")
-            st.write("2. Tingkatkan mutu lantai utama ke Granit *Big Slab* atau Kayu Engineered Wood.")
+            st.write("1. Dialokasikan untuk sistem **Smart Home & Solar Panel**.")
+            st.write("2. Upgrade material lantai utama ke Granit *Big Slab* atau *Engineered Wood*.")
 
     st.markdown("---")
     st.download_button(
