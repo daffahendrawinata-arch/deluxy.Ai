@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 # KONFIGURASI HALAMAN & ATRIBUSI PENCIPTA
 # -------------------------------------------------------------------
 # BISA DIUBAH: Ganti nama Anda di bawah ini
-NAMA_PENCIPTA = "Nama Anda" 
+NAMA_PENCIPTA = "Muhammad Daffa Hendra WInata, CPS, s.T" 
 
 st.set_page_config(
     page_title=f"DELUXY.Ai by {NAMA_PENCIPTA}", 
