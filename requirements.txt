@@ -1,5 +1,5 @@
 streamlit
 numpy
-plotly
-cadquery
 openai
+cadquery==2.4.0
+plotly
