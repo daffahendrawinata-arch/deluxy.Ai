@@ -3,6 +3,7 @@ import streamlit.components.v1 as components
 import json
 import os
 import math
+import re
 import google.generativeai as genai
 
 # ================= 1. SYSTEM CONFIGURATION & STYLES =================
@@ -104,89 +105,5 @@ def get_api_key(sidebar_key):
 def analyze_user_request(user_prompt, current_state, api_key):
     """Menggunakan Gemini untuk menganalisis prompt pengguna dan mengembalikan Structured CAD JSON."""
     if not api_key:
-        # Fallback offline heuristic jika API key tidak ada
         p = user_prompt.lower()
         if "poros" in p or "shaft" in p or "pancing" in p:
-            return {
-                "status": "ready",
-                "component_type": "stepped_shaft",
-                "units": "mm",
-                "material": "Steel",
-                "parameters": {
-                    "overall_length": 120.0,
-                    "main_diameter": 12.0,
-                    "left_diameter": 8.0,
-                    "right_diameter": 10.0,
-                    "hole_diameter": 5.0
-                },
-                "missing_parameters": [],
-                "questions": []
-            }
-        elif "flange" in p or "piringan" in p or "pelat" in p:
-            return {
-                "status": "ready",
-                "component_type": "flange",
-                "units": "mm",
-                "material": "Steel",
-                "parameters": {
-                    "outer_diameter": 80.0,
-                    "inner_diameter": 20.0,
-                    "thickness": 10.0,
-                    "hole_diameter": 6.0
-                },
-                "missing_parameters": [],
-                "questions": []
-            }
-        else:
-            return {
-                "status": "ready",
-                "component_type": "cylinder",
-                "units": "mm",
-                "material": "Steel",
-                "parameters": {
-                    "height": 50.0,
-                    "diameter": 30.0,
-                    "hole_diameter": 0.0
-                },
-                "missing_parameters": [],
-                "questions": []
-            }
-
-    try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        
-        system_instruction = f"""
-        Anda adalah CAD Assistant Engine untuk DELUXY.Ai.
-        Tugas Anda: Ubah permintaan bahasa alami pengguna menjadi JSON CAD terstruktur.
-        
-        State CAD saat ini:
-        {json.dumps(current_state)}
-        
-        Komponen yang didukung V1:
-        - shaft (parameters: length, diameter, hole_diameter)
-        - stepped_shaft (parameters: overall_length, main_diameter, left_diameter, right_diameter, hole_diameter)
-        - cylinder (parameters: height, diameter, hole_diameter)
-        - flange (parameters: outer_diameter, inner_diameter, thickness, hole_diameter)
-
-        Aturan Output:
-        1. Kembalikan HANYA JSON valid tanpa teks penjelas atau markdown codeblock (no ```json).
-        2. Jika user ingin mengubah model yang aktif, perbarui nilai parameter yang relevan dari state saat ini.
-        3. Jika informasi penting belum ada (misal user hanya berkata 'buatkan poros'), set status menjadi "needs_clarification", isi missing_parameters dan questions.
-        4. Jika parameter cukup, set status menjadi "ready".
-        5. Nilai parameter HARUS berupa angka floating point / float.
-
-        Format JSON Wajib:
-        {{
-            "status": "ready" atau "needs_clarification",
-            "component_type": "nama_komponen",
-            "units": "mm",
-            "material": "Steel / Stainless Steel / Aluminium / Brass / Copper / Plastic / Titanium",
-            "parameters": {{ ... }},
-            "missing_parameters": [...],
-            "questions": [...]
-        }}
-        """
-        
-        response = model.generate_content([system_instruction, f"User prompt: {user_prompt}"])
-        clean_json = response.text.replace("
