@@ -3,3 +3,4 @@ numpy
 openai
 cadquery
 plotly
+protobuf>=5.26.1,<6
