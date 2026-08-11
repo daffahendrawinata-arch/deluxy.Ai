@@ -1,6 +1,3 @@
-
-
-
 import streamlit as st
 import streamlit.components.v1 as components
 import json
@@ -1378,3 +1375,4 @@ if st.session_state.conversation_history:
         for item in st.session_state.conversation_history[-12:]:
             role = "👤 User" if item["role"] == "user" else "🤖 DELUXY.Ai"
             st.markdown(f"**{role}:** {item['content']}")
+
