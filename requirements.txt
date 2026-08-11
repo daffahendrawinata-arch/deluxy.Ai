@@ -1,4 +1,5 @@
 streamlit
 numpy
-openai
 plotly
+openai
+cadquery==2.8.0
