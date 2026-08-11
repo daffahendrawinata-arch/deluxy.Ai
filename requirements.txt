@@ -1,6 +1,5 @@
 streamlit
 numpy
-openai
-cadquery
 plotly
-protobuf>=5.26.1,<6
+cadquery
+openai
