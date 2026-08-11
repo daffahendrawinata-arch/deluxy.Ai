@@ -3,8 +3,7 @@ import streamlit.components.v1 as components
 import numpy as np
 import json
 import re
-from google import genai
-from google.genai import types
+import google.generativeai as genai
 
 # Konfigurasi Halaman Streamlit
 st.set_page_config(
@@ -45,8 +44,8 @@ st.markdown('<div class="sub-header">Powered by Gemini AI - Masukkan prompt beba
 # ================= SIDEBAR PARAMETER =================
 st.sidebar.header("🔑 AI API & Material Setting")
 
-# Input API Key Gemini (Bisa disimpan di st.secrets atau diisi manual)
-api_key = st.sidebar.text_input("Gemini API Key:", type="password", help="Dapatkan API Key gratis dari Google AI Studio")
+# Input API Key Gemini
+api_key = st.sidebar.text_input("Gemini API Key:", type="password", help="Dapatkan API Key gratis dari Google AI Studio (aistudio.google.com)")
 
 material = st.sidebar.selectbox(
     "Pilih Material Komponen:",
@@ -83,51 +82,45 @@ def parse_prompt_with_gemini(prompt_text, gemini_key):
         return None
     
     try:
-        client = genai.Client(api_key=gemini_key)
+        genai.configure(api_key=gemini_key)
+        model = genai.GenerativeModel("gemini-1.5-flash")
         
-        system_instruction = """
-        Anda adalah AI CAD Assistant berpengalaman. Tugas Anda adalah menganalisis permintaan pengguna (bahkan jika ambigu/bebas seperti 'komponen rel pancing') dan memetakan menjadi salah satu dari 4 bentuk 3D dasar CAD berikut:
-        1. "Roda Gigi (Spur Gear)" - Gunakan ini untuk komponen mekanis berputar seperti drive gear, pinion gear, gir pemutar reel pancing, dll.
-        2. "Poros Bertingkat (Shaft)" - Gunakan ini untuk as, spindle, main shaft rel pancing, batang putar, dll.
+        prompt_instruction = f"""
+        Anda adalah AI CAD Assistant berpengalaman. Tugas Anda adalah menganalisis permintaan pengguna (bahkan jika ambigu/bebas seperti '{prompt_text}') dan memetakan menjadi salah satu dari 4 bentuk 3D dasar CAD berikut:
+        1. "Roda Gigi (Spur Gear)" - Gunakan ini jika permintaan berupa gear, gigi, pinion, drive gear rel pancing, dll.
+        2. "Poros Bertingkat (Shaft)" - Gunakan ini jika permintaan berupa poros, as, shaft, main shaft rel pancing, rod, dll.
         3. "Pelat Flensa Berlubang (Flange Plate)" - Gunakan ini untuk disk, rotor plate, piringan rem, penutup melingkar berlubang.
         4. "Siku Penopang (Bracket)" - Gunakan ini untuk rangka L, mount, penopang, casing siku, dll.
 
-        Kembalikan HANYA format JSON valid tanpa teks markdown pembungkus. Format JSON:
-        {
+        Kembalikan HANYA format JSON valid tanpa tanda backtick/markdown ```json ... ```. Format JSON:
+        {{
             "komponen_type": "salah satu dari 4 jenis di atas",
             "penjelasan_ai": "alasan singkat mengapa bentuk ini dipilih berdasarkan permintaan",
-            "params": {
-                "num_teeth": 18 (int, jika gear),
-                "gear_radius": 40 (int mm, jika gear),
-                "gear_thickness": 12 (int mm, jika gear),
-                "gear_bore": 10 (int mm, jika gear),
-                "d1": 25 (int mm, jika shaft),
-                "l1": 60 (int mm, jika shaft),
-                "d2": 35 (int mm, jika shaft),
-                "l2": 50 (int mm, jika shaft),
-                "d_outer": 100 (int mm, jika flange),
-                "d_inner": 30 (int mm, jika flange),
-                "tebal": 8 (int mm, jika flange),
-                "jumlah_lubang": 4 (int, jika flange),
-                "d_lubang": 6 (int mm, jika flange),
-                "p": 70 (int mm, jika bracket),
-                "l": 40 (int mm, jika bracket),
-                "t": 70 (int mm, jika bracket),
-                "tebal_b": 5 (int mm, jika bracket)
-            }
-        }
+            "params": {{
+                "num_teeth": 18,
+                "gear_radius": 40,
+                "gear_thickness": 12,
+                "gear_bore": 10,
+                "d1": 25,
+                "l1": 60,
+                "d2": 35,
+                "l2": 50,
+                "d_outer": 100,
+                "d_inner": 30,
+                "tebal": 8,
+                "jumlah_lubang": 4,
+                "d_lubang": 6,
+                "p": 70,
+                "l": 40,
+                "t": 70,
+                "tebal_b": 5
+            }}
+        }}
         """
 
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=f"Permintaan Client: '{prompt_text}'",
-            config=types.GenerateContentConfig(
-                system_instruction=system_instruction,
-                temperature=0.2,
-                response_mime_type="application/json"
-            )
-        )
-        return json.loads(response.text)
+        response = model.generate_content(prompt_instruction)
+        cleaned_text = response.text.replace("```json", "").replace("```", "").strip()
+        return json.loads(cleaned_text)
     except Exception as e:
         st.error(f"Gagal memproses dengan AI: {e}")
         return None
@@ -138,26 +131,26 @@ if api_key and user_prompt:
     with st.spinner("🧠 AI Gemini sedang menganalisis permintaan client..."):
         ai_result = parse_prompt_with_gemini(user_prompt, api_key)
 
-# Fallback sederhana jika API Key belum diisi
+# Fallback Cerdas jika API Key belum diisi
 if not ai_result:
     prompt_lower = user_prompt.lower()
     if any(kw in prompt_lower for kw in ["pancing", "reel", "shaft", "poros", "as"]):
         komponen_type = "Poros Bertingkat (Shaft)"
-        penjelasan = "Terdeteksi kata pancing/shaft, dipetakan ke Poros Utama (Main Shaft)."
+        penjelasan = "Terdeteksi kata 'rel pancing/shaft', dipetakan ke Main Shaft (Poros Utama) Rel Pancing."
     elif any(kw in prompt_lower for kw in ["gear", "gigi", "gir"]):
         komponen_type = "Roda Gigi (Spur Gear)"
-        penjelasan = "Terdeteksi kata gear/gigi."
-    elif any(kw in prompt_lower for kw in ["flange", "pelat"]):
+        penjelasan = "Terdeteksi kata 'gear/gigi', dipetakan ke Roda Gigi (Spur Gear)."
+    elif any(kw in prompt_lower for kw in ["flange", "pelat", "piringan"]):
         komponen_type = "Pelat Flensa Berlubang (Flange Plate)"
-        penjelasan = "Terdeteksi kata flange/pelat."
+        penjelasan = "Terdeteksi kata 'flange/pelat', dipetakan ke Pelat Flensa Berlubang."
     else:
         komponen_type = "Siku Penopang (Bracket)"
-        penjelasan = "Permintaan umum, dipetakan ke Bracket/Rangka dasar."
+        penjelasan = "Permintaan umum, dipetakan ke Bracket/Rangka penopang dasar."
     
     params = {}
 else:
     komponen_type = ai_result.get("komponen_type", "Poros Bertingkat (Shaft)")
-    penjelasan = ai_result.get("penjelasan_ai", "Dipilih berdasarkan analisis AI.")
+    penjelasan = ai_result.get("penjelasan_ai", "Dipilih berdasarkan analisis AI Gemini.")
     params = ai_result.get("params", {})
 
 # Tampilkan Status AI
