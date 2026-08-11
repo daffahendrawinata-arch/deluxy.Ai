@@ -1375,4 +1375,3 @@ if st.session_state.conversation_history:
         for item in st.session_state.conversation_history[-12:]:
             role = "👤 User" if item["role"] == "user" else "🤖 DELUXY.Ai"
             st.markdown(f"**{role}:** {item['content']}")
-
