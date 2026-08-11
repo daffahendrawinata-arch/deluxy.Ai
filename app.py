@@ -25,6 +25,10 @@ st.markdown("""
         text-align: center;
         margin-bottom: 25px;
     }
+    /* Style untuk area text input */
+    .stTextArea textarea {
+        background-color: #f0f8ff;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -34,8 +38,20 @@ st.markdown('<div class="sub-header">Platform Desain Komponen Permesinan & Gener
 # ================= SIDEBAR PARAMETER =================
 st.sidebar.header("🎛️ Parameter Komponen")
 
+# --- FITUR BARU: INPUT KUSTOM CLIENT ---
+st.sidebar.subheader("✍️ Permintaan Khusus Client")
+client_custom_text = st.sidebar.text_area(
+    "Ketik deskripsi komponen yang Anda inginkan di sini (contoh: 'Poros transmisi dengan alur pasak panjang 20mm'):",
+    height=100,
+    placeholder="Contoh: Poros transmisi dengan alur pasak..."
+)
+# --------------------------------------
+
+st.sidebar.markdown("---")
+st.sidebar.subheader("🛠️ Preset & Dimensi")
+
 komponen_type = st.sidebar.selectbox(
-    "Pilih Tipe Komponen:",
+    "Pilih Tipe Dasar:",
     ["Poros Bertingkat (Shaft)", "Pelat Flensa Berlubang (Flange Plate)", "Siku Penopang (Bracket)"]
 )
 
@@ -58,6 +74,7 @@ st.sidebar.subheader("📐 Dimensi Utama (mm)")
 d1 = l1 = d2 = l2 = 0
 d_outer = d_inner = tebal = jumlah_lubang = d_lubang = 0
 p = l = t = tebal_b = 0
+total_volume = 0.1
 
 if komponen_type == "Poros Bertingkat (Shaft)":
     d1 = st.sidebar.slider("Diameter Bagian 1 (d1)", 10, 100, 30)
@@ -102,7 +119,7 @@ with col1:
     st.subheader("🧊 Pratinjau 3D CAD Interaktif")
     st.caption("Gunakan Klik Kiri Mouse untuk memutar objek 3D dan Scroll Wheel untuk Zoom.")
 
-    # Generator HTML/ThreeJS Ringan untuk Render 3D
+    # Generator HTML/ThreeJS Ringan untuk Render 3D (MEMPERTAHANKAN GAMBAR LAMA)
     def render_3d_viewer(k_type, d1, l1, d2, l2, d_outer, d_inner, tebal, p, l, t, tebal_b):
         html_code = f"""
         <!DOCTYPE html>
@@ -203,10 +220,15 @@ with col1:
 
     # Render Visualizer 3D dengan Parameter Lengkap
     html_output = render_3d_viewer(komponen_type, d1, l1, d2, l2, d_outer, d_inner, tebal, p, l, t, tebal_b)
-    components.html(html_output, height=420)
+    components.html(html_output, height=480)
 
 with col2:
     st.subheader("📊 Analisis Teknik AI")
+    
+    # Menampilkan Permintaan Kustom Client jika ada
+    if client_custom_text:
+        st.info(f"**Permintaan Kustom Client:**\n\"{client_custom_text}\"")
+    
     st.metric("Estimasi Berat Total", f"{berat_gram:.2f} Gram")
     st.metric("Total Volume Material", f"{total_volume:.2f} cm³")
     st.metric("Estimasi Biaya Produksi", f"Rp {harga_est:,.0f}")
@@ -214,20 +236,39 @@ with col2:
     st.markdown("---")
     st.subheader("💾 Ekspor Model CAD")
     
+    # Persiapan Teks Laporan (Memasukkan Input Kustom Client)
+    final_type_desc = client_custom_text if client_custom_text else komponen_type
+    report_text = f"""=== DELUXY.AI SPECIFICATION REPORT ===
+Deskripsi Komponen: {final_type_desc}
+Tipe Dasar Preset: {komponen_type}
+Material: {material}
+Berat: {berat_gram:.2f} g
+Volume: {total_volume:.2f} cm3
+Estimasi Biaya: Rp {harga_est:,.0f}
+
+--- Dimensi Parametrik ---
+"""
+    if komponen_type == "Poros Bertingkat (Shaft)":
+        report_text += f"d1: {d1}mm, l1: {l1}mm, d2: {d2}mm, l2: {l2}mm"
+    elif komponen_type == "Pelat Flensa Berlubang (Flange Plate)":
+        report_text += f"OD: {d_outer}mm, ID: {d_inner}mm, t: {tebal}mm, Holes: {jumlah_lubang}"
+    else:
+        report_text += f"P: {p}mm, L: {l}mm, T: {t}mm, t_wall: {tebal_b}mm"
+
     # Tombol Ekspor File CAD
     st.download_button(
         label="📥 Download File 3D (STL)",
-        data=f"DELUXY.AI CAD MODEL - {komponen_type}\nMaterial: {material}\nVolume: {total_volume:.2f} cm3",
+        data=f"DELUXY.AI CAD MODEL\nDesc: {final_type_desc}\nVolume: {total_volume:.2f} cm3",
         file_name=f"Deluxy_CAD_{komponen_type.split()[0]}.stl",
         mime="application/slate"
     )
     
     st.download_button(
         label="📥 Download Laporan Spesifikasi (TXT)",
-        data=f"=== DELUXY.AI SPECIFICATION REPORT ===\nTipe Komponen: {komponen_type}\nMaterial: {material}\nBerat: {berat_gram:.2f} g\nEstimasi Biaya: Rp {harga_est:,.0f}",
+        data=report_text,
         file_name="Laporan_Spesifikasi_CAD.txt",
         mime="text/plain"
     )
 
 st.markdown("---")
-st.info("💡 **Tips AI:** Anda dapat mengubah spesifikasi dimensi pada menu di sebelah kiri, dan pratinjau 3D beserta kalkulasi teknik akan diperbarui secara otomatis.")
+st.success("💡 **Tips:** Client dapat mengetikkan detail spesifik yang mereka inginkan di kolom sebelah kiri. Gambar 3D di atas akan tetap menggunakan preset dasar yang dipilih untuk visualisasi cepat.")
