@@ -352,40 +352,48 @@ def create_gear_polygon(
     bore
 ):
     """
-    Creates a detailed radial gear profile.
+    Membuat profil gear parametrik yang valid untuk CadQuery.
 
-    This is an engineering-style approximation:
-    root circle
-    dedendum
-    pitch circle
-    addendum
-    tooth flanks
-    tooth tip
-
-    It is intentionally generated parametrically.
+    Menghindari duplicate consecutive points yang dapat membuat
+    wire OpenCascade menjadi invalid.
     """
+
+    teeth = int(teeth)
+    module = float(module)
+    pressure_angle = float(pressure_angle)
+    bore = float(bore)
+
+    if teeth < 4:
+        raise ValueError("Jumlah gigi minimal 4.")
+
+    if module <= 0:
+        raise ValueError("Module harus lebih besar dari 0.")
 
     pitch_radius = module * teeth / 2.0
 
     addendum = module
-
-    # Standard approximate dedendum
     dedendum = 1.25 * module
 
     outer_radius = pitch_radius + addendum
+    root_radius = pitch_radius - dedendum
 
-    root_radius = max(
-        0.1,
-        pitch_radius - dedendum
-    )
+    if root_radius <= 0:
+        raise ValueError("Parameter gear menghasilkan root diameter <= 0.")
 
     bore_radius = bore / 2.0
+
+    if bore_radius >= root_radius:
+        raise ValueError(
+            f"Bore {bore:.2f} mm terlalu besar. "
+            f"Bore harus lebih kecil dari root diameter "
+            f"{root_radius * 2:.2f} mm."
+        )
 
     points = []
 
     tooth_pitch = 2.0 * math.pi / teeth
 
-    # Approximate tooth angular width
+    # Lebar gigi pada area pitch
     tooth_width = tooth_pitch * 0.42
 
     for i in range(teeth):
@@ -397,54 +405,58 @@ def create_gear_polygon(
         a3 = center + tooth_width / 2.0
         a4 = center + tooth_pitch / 2.0
 
-        # Root before tooth
-        points.append(
+        tooth_points = [
             (
                 root_radius * math.cos(a1),
                 root_radius * math.sin(a1)
-            )
-        )
-
-        # Tooth flank
-        points.append(
+            ),
             (
                 root_radius * math.cos(a2),
                 root_radius * math.sin(a2)
-            )
-        )
-
-        # Tooth tip
-        points.append(
+            ),
             (
                 outer_radius * math.cos(a2),
                 outer_radius * math.sin(a2)
-            )
-        )
-
-        points.append(
+            ),
             (
                 outer_radius * math.cos(a3),
                 outer_radius * math.sin(a3)
-            )
-        )
-
-        # Other flank
-        points.append(
+            ),
             (
                 root_radius * math.cos(a3),
                 root_radius * math.sin(a3)
             )
-        )
+        ]
 
-        points.append(
-            (
-                root_radius * math.cos(a4),
-                root_radius * math.sin(a4)
-            )
-        )
+        # Tambahkan titik terakhir hanya jika tidak sama
+        # dengan titik sebelumnya.
+        for p in tooth_points:
 
-    return points, root_radius, outer_radius, bore_radius
+            if not points or p != points[-1]:
+                points.append(p)
 
+    # Hapus duplicate terakhir jika ada
+    # akibat periodic closure.
+    cleaned = []
+
+    for p in points:
+
+        if not cleaned:
+            cleaned.append(p)
+            continue
+
+        dx = p[0] - cleaned[-1][0]
+        dy = p[1] - cleaned[-1][1]
+
+        if math.hypot(dx, dy) > 1e-9:
+            cleaned.append(p)
+
+    return (
+        cleaned,
+        root_radius,
+        outer_radius,
+        bore_radius
+    )
 
 # ============================================================
 # CADQUERY GEAR
