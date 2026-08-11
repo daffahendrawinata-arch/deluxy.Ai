@@ -1,4 +1,4 @@
-with col2:
+    with col2:
     st.subheader("📊 Info Output")
     st.write(f"**Item Terpilih:** {bentuk_terpilih}")
     st.write(f"**Material:** {material}")
