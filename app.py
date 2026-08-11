@@ -54,6 +54,11 @@ massa_jenis = {
 
 st.sidebar.subheader("📐 Dimensi Utama (mm)")
 
+# Inisialisasi variabel default
+d1 = l1 = d2 = l2 = 0
+d_outer = d_inner = tebal = jumlah_lubang = d_lubang = 0
+p = l = t = tebal_b = 0
+
 if komponen_type == "Poros Bertingkat (Shaft)":
     d1 = st.sidebar.slider("Diameter Bagian 1 (d1)", 10, 100, 30)
     l1 = st.sidebar.slider("Panjang Bagian 1 (l1)", 20, 200, 50)
@@ -88,7 +93,7 @@ else:  # Bracket
 
 # Berat & Estimasi Biaya
 berat_gram = total_volume * massa_jenis[material]
-harga_est = (berat_gram / 1000) * 150000 + 50000  # Perkiraan kasar biaya cetak/machining (IDR)
+harga_est = (berat_gram / 1000) * 150000 + 50000  # Perkiraan kasar biaya (IDR)
 
 # ================= TAMPILAN UTAMA =================
 col1, col2 = st.columns([3, 2])
@@ -97,8 +102,8 @@ with col1:
     st.subheader("🧊 Pratinjau 3D CAD Interaktif")
     st.caption("Gunakan Klik Kiri Mouse untuk memutar objek 3D dan Scroll Wheel untuk Zoom.")
 
-    # Generator HTML/ThreeJS Ringan untuk Render 3D Tanpa Crash
-    def render_3d_viewer(komponen_type):
+    # Generator HTML/ThreeJS Ringan untuk Render 3D
+    def render_3d_viewer(k_type, d1, l1, d2, l2, d_outer, d_inner, tebal, p, l, t, tebal_b):
         html_code = f"""
         <!DOCTYPE html>
         <html>
@@ -141,7 +146,7 @@ with col1:
 
                 const group = new THREE.Group();
 
-                if ("{komponen_type}" === "Poros Bertingkat (Shaft)") {{
+                if ("{k_type}" === "Poros Bertingkat (Shaft)") {{
                     const geom1 = new THREE.CylinderGeometry({d1}/2, {d1}/2, {l1}, 32);
                     const mesh1 = new THREE.Mesh(geom1, material3D);
                     mesh1.position.y = {l1}/2;
@@ -152,7 +157,7 @@ with col1:
                     mesh2.position.y = {l1} + {l2}/2;
                     group.add(mesh2);
                 }} 
-                else if ("{komponen_type}" === "Pelat Flensa Berlubang (Flange Plate)") {{
+                else if ("{k_type}" === "Pelat Flensa Berlubang (Flange Plate)") {{
                     const shape = new THREE.Shape();
                     shape.absarc(0, 0, {d_outer}/2, 0, Math.PI * 2, false);
                     const holePath = new THREE.Path();
@@ -196,8 +201,9 @@ with col1:
         """
         return html_code
 
-    # Render Visualizer 3D
-    components.html(render_3d_viewer(komponen_type), height=420)
+    # Render Visualizer 3D dengan Parameter Lengkap
+    html_output = render_3d_viewer(komponen_type, d1, l1, d2, l2, d_outer, d_inner, tebal, p, l, t, tebal_b)
+    components.html(html_output, height=420)
 
 with col2:
     st.subheader("📊 Analisis Teknik AI")
