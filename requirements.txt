@@ -1,5 +1,5 @@
 streamlit
 numpy
-google-generativeai
+openai
 cadquery
 plotly
