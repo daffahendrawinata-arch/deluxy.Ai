@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 # -------------------------------------------------------------------
 # KONFIGURASI HALAMAN & ATRIBUSI PENCIPTA
 # -------------------------------------------------------------------
-NAMA_PENCIPTA = "Nama Anda"  # Ganti dengan nama Anda / Studio Anda
+NAMA_PENCIPTA = "Muhammad Daffa Hendra Winata, CPS."  # Ganti dengan nama Anda / Studio Anda
 
 st.set_page_config(
     page_title=f"DELUXY.Ai - Designed by {NAMA_PENCIPTA}", 
