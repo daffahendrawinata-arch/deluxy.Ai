@@ -1,499 +1,244 @@
-import streamlit as st
-import os
-import re
-import json
-import math
-from pathlib import Path
-
-# ============================================================
-# DELUXY.Ai — PARAMETRIC CAD ENGINE V2
-# ============================================================
-
-st.set_page_config(
-    page_title="DELUXY.Ai CAD",
-    page_icon="💎",
-    layout="wide"
-)
-
-# ============================================================
-# IMPORT ENGINES
-# ============================================================
-
-try:
-    import cadquery as cq
-    CAD_OK = True
-except Exception:
-    cq = None
-    CAD_OK = False
+BANGUN ULANG APLIKASI SAYA DARI NOL.
 
-try:
-    import plotly.graph_objects as go
-    PLOTLY_OK = True
-except Exception:
-    go = None
-    PLOTLY_OK = False
+Nama aplikasi:
 
-try:
-    import google.generativeai as genai
-    GEMINI_OK = True
-except Exception:
-    genai = None
-    GEMINI_OK = False
+DELUXY.Ai
 
+Tagline:
 
-# ============================================================
-# UI STYLE
-# ============================================================
+AI ENGINEERING CAD GENERATOR
 
-st.markdown("""
-<style>
+========================================================
+KONSEP UTAMA
+========================================================
 
-.block-container {
-    padding-top: 1.3rem;
-    padding-bottom: 3rem;
-}
+Saya TIDAK MAU menggunakan Google Gemini.
 
-.hero {
-    padding: 22px;
-    border-radius: 18px;
-    background: linear-gradient(135deg, #0f172a, #1e293b);
-    border: 1px solid #334155;
-    margin-bottom: 20px;
-}
+Hapus seluruh dependency:
 
-.hero h1 {
-    margin: 0;
-    color: #f8fafc;
-    font-size: 2.2rem;
-}
+google-generativeai
 
-.hero p {
-    color: #94a3b8;
-    margin-top: 8px;
-}
+Jangan gunakan Gemini sama sekali.
 
-.status {
-    padding: 10px 14px;
-    border-radius: 10px;
-    background: #111827;
-    border: 1px solid #334155;
-}
+Gunakan OpenAI API sebagai AI ENGINE.
 
-</style>
-""", unsafe_allow_html=True)
+Arsitektur aplikasi:
 
+USER
+ ↓
+DELUXY.Ai CHAT / PROMPT
+ ↓
+OPENAI GPT
+ ↓
+STRUCTURED CAD SPECIFICATION
+ ↓
+LOCAL CAD ENGINE
+ ↓
+CADQUERY / OPENCASCADE
+ ↓
+REAL 3D CAD SOLID
+ ↓
+3D VIEWER
+ ↓
+STEP / STL
 
-st.markdown("""
-<div class="hero">
+PENTING:
 
-<h1>💎 DELUXY.Ai — Parametric CAD Engine V2</h1>
+GPT BUKAN pembuat gambar CAD.
 
-<p>
-Natural Language → Engineering Parameters → OpenCascade Solid → Interactive 3D CAD
-</p>
+GPT hanya bertugas:
 
-</div>
-""", unsafe_allow_html=True)
+1. memahami bahasa manusia
+2. menentukan jenis komponen
+3. mengambil parameter engineering
+4. menjelaskan hasil
+5. meminta klarifikasi jika parameter penting belum tersedia
+6. memberikan rekomendasi engineering secara tekstual
 
+Geometry CAD HARUS dibuat oleh CADQuery/OpenCascade.
 
-# ============================================================
-# DEFAULT STATE
-# ============================================================
+========================================================
+OPENAI
+========================================================
 
-DEFAULT_STATE = {
-    "component_type": "gear",
-    "material": "Steel",
-    "units": "mm",
+Gunakan package:
 
-    "parameters": {
+openai
 
-        "teeth": 24,
+Gunakan OpenAI API.
 
-        "module": 2.0,
+API key harus dibaca dari:
 
-        "pressure_angle": 20.0,
+st.secrets["OPENAI_API_KEY"]
 
-        "thickness": 8.0,
+atau:
 
-        "bore_diameter": 10.0
-    }
-}
+os.environ.get("OPENAI_API_KEY")
 
+JANGAN pernah hard-code API key.
 
-if "cad_state" not in st.session_state:
+Buat fungsi:
 
-    st.session_state.cad_state = DEFAULT_STATE.copy()
+get_openai_client()
 
+dan:
 
-if "shape" not in st.session_state:
+analyze_cad_request()
 
-    st.session_state.shape = None
+Gunakan model OpenAI yang tersedia melalui API.
 
+Jangan membuat dependency ke Gemini.
 
-# ============================================================
-# MATERIAL DATABASE
-# ============================================================
+========================================================
+AI ENGINE
+========================================================
 
-MATERIALS = {
+GPT harus bertindak sebagai:
 
-    "Steel": 7.85,
+DELUXY Engineering AI Assistant.
 
-    "Stainless Steel": 8.00,
+System instruction:
 
-    "Aluminium": 2.70,
+"You are DELUXY.Ai Engineering CAD Assistant.
 
-    "Brass": 8.40,
+Your job is to convert natural-language engineering requests into structured CAD specifications.
 
-    "Copper": 8.96,
+You must never directly generate fake geometry.
 
-    "Titanium": 4.50,
+You must return structured parameters.
 
-    "Plastic": 1.05
-
-}
-
-
-# ============================================================
-# TEXT PARSER HELPERS
-# ============================================================
-
-def extract_number(text, pattern):
-
-    match = re.search(pattern, text.lower())
-
-    if not match:
-        return None
-
-    return float(
-        match.group(1).replace(",", ".")
-    )
-
-
-def extract_integer(text, pattern):
-
-    match = re.search(pattern, text.lower())
-
-    if not match:
-        return None
-
-    return int(match.group(1))
-
-
-# ============================================================
-# COMPONENT DETECTION
-# ============================================================
-
-def detect_component(text):
-
-    text = text.lower()
-
-    if any(
-        x in text
-        for x in [
-            "gear",
-            "roda gigi",
-            "spur gear",
-            "spur"
-        ]
-    ):
-
-        return "gear"
-
-    if any(
-        x in text
-        for x in [
-            "stepped shaft",
-            "poros bertingkat"
-        ]
-    ):
-
-        return "stepped_shaft"
-
-    if (
-        "shaft" in text
-        or
-        "poros" in text
-    ):
-
-        return "shaft"
-
-    if (
-        "cylinder" in text
-        or
-        "silinder" in text
-    ):
-
-        return "cylinder"
-
-    return None
-
-
-# ============================================================
-# LOCAL ENGINEERING PARSER
-# ============================================================
-
-def local_parse(prompt, old_state):
-
-    text = prompt.lower()
-
-    state = {
-
-        "component_type":
-            detect_component(text)
-            or old_state["component_type"],
-
-        "material":
-            old_state.get(
-                "material",
-                "Steel"
-            ),
-
-        "units":
-            "mm",
-
-        "parameters":
-            dict(
-                old_state["parameters"]
-            )
-    }
-
-
-    # --------------------------------------------------------
-    # MATERIAL
-    # --------------------------------------------------------
-
-    for material in MATERIALS:
-
-        if material.lower() in text:
-
-            state["material"] = material
-
-
-    # ========================================================
-    # GEAR
-    # ========================================================
-
-    if state["component_type"] == "gear":
-
-        teeth = extract_integer(
-            text,
-            r"(?:jumlah\s*)?"
-            r"(?:gigi|teeth)"
-            r"\s*(?:=|:|sebanyak)?"
-            r"\s*(\d+)"
-        )
-
-        module = extract_number(
-            text,
-            r"(?:module|modul)"
-            r"\s*(?:=|:)?"
-            r"\s*(\d+(?:[.,]\d+)?)"
-        )
-
-        pitch = extract_number(
-            text,
-            r"(?:pitch\s*diameter|diameter\s*pitch)"
-            r"\s*(?:=|:)?"
-            r"\s*(\d+(?:[.,]\d+)?)"
-        )
-
-        bore = extract_number(
-            text,
-            r"(?:bore|lubang(?:\s+tengah)?|diameter\s*lubang)"
-            r"\s*(?:=|:|diameter)?"
-            r"\s*(\d+(?:[.,]\d+)?)"
-        )
-
-        thickness = extract_number(
-            text,
-            r"(?:tebal|thickness)"
-            r"\s*(?:=|:|nya)?"
-            r"\s*(\d+(?:[.,]\d+)?)"
-        )
-
-        pressure_angle = extract_number(
-            text,
-            r"(?:pressure\s*angle|sudut\s*tekanan)"
-            r"\s*(?:=|:)?"
-            r"\s*(\d+(?:[.,]\d+)?)"
-        )
-
-
-        if teeth is not None:
-
-            state["parameters"]["teeth"] = teeth
-
-
-        if module is not None:
-
-            state["parameters"]["module"] = module
-
-        elif pitch is not None and teeth:
-
-            state["parameters"]["module"] = (
-                pitch / teeth
-            )
-
-
-        if bore is not None:
-
-            state["parameters"]["bore_diameter"] = bore
-
-
-        if thickness is not None:
-
-            state["parameters"]["thickness"] = thickness
-
-
-        if pressure_angle is not None:
-
-            state["parameters"]["pressure_angle"] = pressure_angle
-
-
-    # ========================================================
-    # SHAFT
-    # ========================================================
-
-    elif state["component_type"] in (
-        "shaft",
-        "stepped_shaft"
-    ):
-
-        length = extract_number(
-            text,
-            r"(?:panjang|length)"
-            r"\s*(?:=|:)?"
-            r"\s*(\d+(?:[.,]\d+)?)"
-        )
-
-        diameter = extract_number(
-            text,
-            r"(?:diameter utama|diameter|diam)"
-            r"\s*(?:=|:)?"
-            r"\s*(\d+(?:[.,]\d+)?)"
-        )
-
-        bore = extract_number(
-            text,
-            r"(?:bore|lubang)"
-            r"\s*(?:=|:|tengah)?"
-            r"\s*(\d+(?:[.,]\d+)?)"
-        )
-
-
-        if length is not None:
-
-            state["parameters"]["length"] = length
-
-
-        if diameter is not None:
-
-            state["parameters"]["diameter"] = diameter
-
-
-        if bore is not None:
-
-            state["parameters"]["bore_diameter"] = bore
-
-
-    # ========================================================
-    # CYLINDER
-    # ========================================================
-
-    elif state["component_type"] == "cylinder":
-
-        diameter = extract_number(
-            text,
-            r"(?:diameter|diam)"
-            r"\s*(?:=|:)?"
-            r"\s*(\d+(?:[.,]\d+)?)"
-        )
-
-        length = extract_number(
-            text,
-            r"(?:panjang|length|tinggi)"
-            r"\s*(?:=|:)?"
-            r"\s*(\d+(?:[.,]\d+)?)"
-        )
-
-        bore = extract_number(
-            text,
-            r"(?:bore|lubang)"
-            r"\s*(?:=|:|tengah)?"
-            r"\s*(\d+(?:[.,]\d+)?)"
-        )
-
-
-        if diameter is not None:
-
-            state["parameters"]["diameter"] = diameter
-
-
-        if length is not None:
-
-            state["parameters"]["length"] = length
-
-
-        if bore is not None:
-
-            state["parameters"]["bore_diameter"] = bore
-
-
-    return state
-
-
-# ============================================================
-# GEMINI PARSER
-# ============================================================
-
-def parse_with_gemini(prompt, old_state):
-
-    api_key = None
-
-    try:
-
-        api_key = st.secrets.get(
-            "GEMINI_API_KEY"
-        )
-
-    except Exception:
-
-        pass
-
-
-    if not api_key:
-
-        api_key = os.getenv(
-            "GEMINI_API_KEY"
-        )
-
-
-    # Fallback kalau API key tidak tersedia
-
-    if not api_key or not GEMINI_OK:
-
-        return (
-            local_parse(
-                prompt,
-                old_state
-            ),
-            "Local Parser"
-        )
-
-
-    instruction = """
-You are DELUXY.Ai mechanical engineering CAD parser.
-
-Return ONLY valid JSON.
-
-Allowed component_type:
-
+You must distinguish between:
 gear
 shaft
 stepped_shaft
 cylinder
+bearing
+pulley
+bolt
+nut
+flange
 
-For gear use:
+If the user asks for a gear, it MUST remain a gear.
+
+Never convert a gear into a cylinder.
+
+If an important engineering parameter is missing, identify the missing parameter.
+
+Do not silently invent critical dimensions.
+
+For common standard values, you may suggest reasonable defaults but clearly mark them as defaults."
+
+========================================================
+STRUCTURED OUTPUT
+========================================================
+
+AI response harus berupa structured JSON.
+
+Format:
+
+{
+  "component_type": "gear",
+  "confidence": 0.98,
+  "needs_clarification": false,
+  "missing_parameters": [],
+  "parameters": {
+      "teeth": 24,
+      "module": 2.0,
+      "pressure_angle": 20.0,
+      "thickness": 8.0,
+      "bore_diameter": 10.0
+  },
+  "material": "Steel",
+  "units": "mm",
+  "engineering_notes": [
+      "Spur gear",
+      "20 degree pressure angle"
+  ],
+  "answer": "Saya akan membuat spur gear 24 gigi..."
+}
+
+Jangan mengembalikan Markdown JSON.
+
+Jangan mengembalikan kode.
+
+Jangan mengembalikan gambar.
+
+Hanya structured data.
+
+========================================================
+COMPONENT CLASSIFIER
+========================================================
+
+Walaupun GPT digunakan sebagai AI, buat juga local safety classifier.
+
+Jika user menulis:
+
+gear
+roda gigi
+spur gear
+spur
+gigi
+
+maka local classifier HARUS memprioritaskan:
+
+component_type = gear
+
+Jika:
+
+shaft
+poros
+
+maka:
+
+component_type = shaft
+
+Jika:
+
+stepped shaft
+poros bertingkat
+
+maka:
+
+component_type = stepped_shaft
+
+Jika:
+
+cylinder
+silinder
+
+maka:
+
+component_type = cylinder
+
+Local classifier digunakan untuk mencegah GPT salah memilih geometry.
+
+Contoh:
+
+User:
+
+"Buat gear 24 gigi module 2"
+
+Tidak boleh menjadi:
+
+cylinder
+
+Tidak boleh menjadi:
+
+shaft
+
+HARUS:
+
+gear
+
+========================================================
+GEAR ENGINE
+========================================================
+
+Gear harus menjadi fitur utama aplikasi.
+
+Buat SPUR GEAR PARAMETRIK.
+
+Parameter:
 
 teeth
 module
@@ -501,1292 +246,501 @@ pressure_angle
 thickness
 bore_diameter
 
-For shaft use:
-
-length
-diameter
-bore_diameter
-
-For cylinder use:
-
-diameter
-length
-bore_diameter
-
-Default gear pressure_angle = 20.
-
-Preserve previous values if user does not specify a value.
-
-Never invent a different component.
-"""
-
-
-    try:
-
-        genai.configure(
-            api_key=api_key
-        )
-
-
-        model = genai.GenerativeModel(
-            "gemini-1.5-flash"
-        )
-
-
-        response = model.generate_content(
-
-            instruction
-
-            + "\n\nPREVIOUS STATE:\n"
-
-            + json.dumps(
-                old_state
-            )
-
-            + "\n\nUSER REQUEST:\n"
-
-            + prompt
-        )
-
-
-        raw = response.text.strip()
-
-
-        raw = re.sub(
-            r"^```json\s*",
-            "",
-            raw
-        )
-
-
-        raw = re.sub(
-            r"^```\s*",
-            "",
-            raw
-        )
-
-
-        raw = re.sub(
-            r"\s*```$",
-            "",
-            raw
-        )
-
-
-        data = json.loads(raw)
-
-
-        state = {
-
-            "component_type":
-                data.get(
-                    "component_type",
-                    old_state["component_type"]
-                ),
-
-            "material":
-                data.get(
-                    "material",
-                    old_state.get(
-                        "material",
-                        "Steel"
-                    )
-                ),
-
-            "units":
-                "mm",
-
-            "parameters":
-                data.get(
-                    "parameters",
-                    old_state["parameters"]
-                )
-        }
-
-
-        return state, "Gemini"
-
-
-    except Exception:
-
-        return (
-            local_parse(
-                prompt,
-                old_state
-            ),
-            "Local Fallback"
-        )
-
-
-# ============================================================
-# REAL GEAR CAD
-# ============================================================
-
-def make_spur_gear(
-    teeth,
-    module,
-    pressure_angle,
-    thickness,
-    bore
-):
-
-    teeth = int(teeth)
-
-    module = float(module)
-
-    thickness = float(thickness)
-
-    bore = float(bore)
-
-
-    if teeth < 6:
-
-        raise ValueError(
-            "Jumlah gigi minimal 6."
-        )
-
-
-    if module <= 0:
-
-        raise ValueError(
-            "Module harus lebih besar dari 0."
-        )
-
-
-    if thickness <= 0:
-
-        raise ValueError(
-            "Tebal gear harus lebih besar dari 0."
-        )
-
-
-    if bore <= 0:
-
-        raise ValueError(
-            "Bore harus lebih besar dari 0."
-        )
-
-
-    # ========================================================
-    # BASIC GEAR CALCULATIONS
-    # ========================================================
-
-    pitch_radius = (
-        module * teeth / 2
-    )
-
-
-    addendum = module
-
-    dedendum = 1.25 * module
-
-
-    outer_radius = (
-        pitch_radius
-        + addendum
-    )
-
-
-    root_radius = (
-        pitch_radius
-        - dedendum
-    )
-
-
-    bore_radius = bore / 2
-
-
-    if bore_radius >= root_radius:
-
-        raise ValueError(
-            "Bore terlalu besar "
-            "untuk diameter root gear."
-        )
-
-
-    # ========================================================
-    # TOOTH GEOMETRY
-    # ========================================================
-
-    angular_pitch = (
-        2 * math.pi / teeth
-    )
-
-
-    tooth_half_angle = (
-        angular_pitch * 0.24
-    )
-
-
-    flank_radius = max(
-        root_radius,
-        pitch_radius - module * 0.25
-    )
-
-
-    # ========================================================
-    # ROOT DISC
-    # ========================================================
-
-    result = (
-
-        cq.Workplane("XY")
-
-        .circle(root_radius)
-
-        .extrude(thickness)
-    )
-
-
-    # ========================================================
-    # BUILD EACH TOOTH
-    # ========================================================
-
-    for tooth_number in range(teeth):
-
-        center_angle = (
-            tooth_number
-            * angular_pitch
-        )
-
-
-        tooth_profile = [
-
-            (
-                -angular_pitch * 0.50,
-                root_radius
-            ),
-
-            (
-                -tooth_half_angle,
-                flank_radius
-            ),
-
-            (
-                -tooth_half_angle * 0.55,
-                outer_radius
-            ),
-
-            (
-                tooth_half_angle * 0.55,
-                outer_radius
-            ),
-
-            (
-                tooth_half_angle,
-                flank_radius
-            ),
-
-            (
-                angular_pitch * 0.50,
-                root_radius
-            )
-        ]
-
-
-        points = []
-
-
-        for delta_angle, radius in tooth_profile:
-
-            angle = (
-                center_angle
-                + delta_angle
-            )
-
-
-            x = (
-                radius
-                * math.cos(angle)
-            )
-
-
-            y = (
-                radius
-                * math.sin(angle)
-            )
-
-
-            points.append(
-                (x, y)
-            )
-
-
-        tooth = (
-
-            cq.Workplane("XY")
-
-            .polyline(points)
-
-            .close()
-
-            .extrude(thickness)
-        )
-
-
-        result = result.union(
-            tooth
-        )
-
-
-    # ========================================================
-    # CENTER BORE
-    # ========================================================
-
-    bore_tool = (
-
-        cq.Workplane("XY")
-
-        .circle(bore_radius)
-
-        .extrude(thickness)
-    )
-
-
-    result = result.cut(
-        bore_tool
-    )
-
-
-    return result
-
-
-# ============================================================
-# GENERIC CAD GENERATOR
-# ============================================================
-
-def make_cad(state):
-
-    if not CAD_OK:
-
-        raise RuntimeError(
-            "CadQuery belum ter-install. "
-            "Pastikan requirements.txt sudah "
-            "berisi cadquery kemudian redeploy."
-        )
-
-
-    component = (
-        state["component_type"]
-    )
-
-
-    params = (
-        state["parameters"]
-    )
-
-
-    # ========================================================
-    # GEAR
-    # ========================================================
-
-    if component == "gear":
-
-        return make_spur_gear(
-
-            params["teeth"],
-
-            params["module"],
-
-            params.get(
-                "pressure_angle",
-                20
-            ),
-
-            params["thickness"],
-
-            params["bore_diameter"]
-        )
-
-
-    # ========================================================
-    # SHAFT
-    # ========================================================
-
-    if component == "shaft":
-
-        length = float(
-            params.get(
-                "length",
-                120
-            )
-        )
-
-
-        diameter = float(
-            params.get(
-                "diameter",
-                20
-            )
-        )
-
-
-        bore = float(
-            params.get(
-                "bore_diameter",
-                0
-            )
-        )
-
-
-        model = (
-
-            cq.Workplane("XY")
-
-            .circle(
-                diameter / 2
-            )
-
-            .extrude(
-                length
-            )
-        )
-
-
-        if bore > 0:
-
-            model = model.cut(
-
-                cq.Workplane("XY")
-
-                .circle(
-                    bore / 2
-                )
-
-                .extrude(
-                    length
-                )
-            )
-
-
-        return model
-
-
-    # ========================================================
-    # CYLINDER
-    # ========================================================
-
-    if component == "cylinder":
-
-        diameter = float(
-            params.get(
-                "diameter",
-                30
-            )
-        )
-
-
-        length = float(
-            params.get(
-                "length",
-                50
-            )
-        )
-
-
-        bore = float(
-            params.get(
-                "bore_diameter",
-                0
-            )
-        )
-
-
-        model = (
-
-            cq.Workplane("XY")
-
-            .circle(
-                diameter / 2
-            )
-
-            .extrude(
-                length
-            )
-        )
-
-
-        if bore > 0:
-
-            model = model.cut(
-
-                cq.Workplane("XY")
-
-                .circle(
-                    bore / 2
-                )
-
-                .extrude(
-                    length
-                )
-            )
-
-
-        return model
-
-
-    # ========================================================
-    # STEPPED SHAFT FALLBACK
-    # ========================================================
-
-    if component == "stepped_shaft":
-
-        length = float(
-            params.get(
-                "length",
-                120
-            )
-        )
-
-
-        diameter = float(
-            params.get(
-                "diameter",
-                20
-            )
-        )
-
-
-        return (
-
-            cq.Workplane("XY")
-
-            .circle(
-                diameter / 2
-            )
-
-            .extrude(
-                length
-            )
-        )
-
-
-    raise ValueError(
-        "Jenis komponen belum didukung."
-    )
-
-
-# ============================================================
-# 3D VIEWER
-# ============================================================
-
-def show_3d(
-    shape,
-    title
-):
-
-    if not PLOTLY_OK:
-
-        st.error(
-            "Plotly belum ter-install."
-        )
-
-        return
-
-
-    # OpenCascade tessellation
-
-    vertices, triangles = (
-        shape.val().tessellate(
-            0.03,
-            0.10
-        )
-    )
-
-
-    x = [
-        float(v.x)
-        for v in vertices
-    ]
-
-
-    y = [
-        float(v.y)
-        for v in vertices
-    ]
-
-
-    z = [
-        float(v.z)
-        for v in vertices
-    ]
-
-
-    i = [
-        int(t[0])
-        for t in triangles
-    ]
-
-
-    j = [
-        int(t[1])
-        for t in triangles
-    ]
-
-
-    k = [
-        int(t[2])
-        for t in triangles
-    ]
-
-
-    mesh = go.Mesh3d(
-
-        x=x,
-
-        y=y,
-
-        z=z,
-
-        i=i,
-
-        j=j,
-
-        k=k,
-
-        color="#3b82f6",
-
-        opacity=1.0,
-
-        flatshading=False,
-
-        lighting=dict(
-
-            ambient=0.25,
-
-            diffuse=0.85,
-
-            specular=0.70,
-
-            roughness=0.20,
-
-            fresnel=0.12
-        ),
-
-        lightposition=dict(
-
-            x=100,
-
-            y=100,
-
-            z=180
-        ),
-
-        hoverinfo="skip"
-    )
-
-
-    fig = go.Figure(
-        data=[mesh]
-    )
-
-
-    fig.update_layout(
-
-        title=title,
-
-        height=700,
-
-        margin=dict(
-            l=0,
-            r=0,
-            t=45,
-            b=0
-        ),
-
-        paper_bgcolor="#0b1020",
-
-        scene=dict(
-
-            bgcolor="#0b1020",
-
-            aspectmode="data",
-
-            camera=dict(
-
-                eye=dict(
-
-                    x=1.5,
-
-                    y=1.5,
-
-                    z=1.15
-                )
-            ),
-
-            xaxis=dict(
-                title="X (mm)",
-                gridcolor="#334155"
-            ),
-
-            yaxis=dict(
-                title="Y (mm)",
-                gridcolor="#334155"
-            ),
-
-            zaxis=dict(
-                title="Z (mm)",
-                gridcolor="#334155"
-            )
-        )
-    )
-
-
-    st.plotly_chart(
-
-        fig,
-
-        use_container_width=True,
-
-        config={
-
-            "displaylogo": False,
-
-            "scrollZoom": True,
-
-            "toImageButtonOptions": {
-
-                "format": "png",
-
-                "filename":
-                    "DELUXY_CAD",
-
-                "scale": 2
-            }
-        }
-    )
-
-
-# ============================================================
-# EXPORT
-# ============================================================
-
-def export_step(shape):
-
-    path = (
-        "/tmp/deluxy_model.step"
-    )
-
-
-    cq.exporters.export(
-
-        shape,
-
-        path,
-
-        exportType="STEP"
-    )
-
-
-    return Path(
-        path
-    ).read_bytes()
-
-
-def export_stl(shape):
-
-    path = (
-        "/tmp/deluxy_model.stl"
-    )
-
-
-    cq.exporters.export(
-
-        shape,
-
-        path,
-
-        exportType="STL",
-
-        tolerance=0.01,
-
-        angularTolerance=0.10
-    )
-
-
-    return Path(
-        path
-    ).read_bytes()
-
-
-# ============================================================
-# SIDEBAR
-# ============================================================
-
-with st.sidebar:
-
-    st.header(
-        "⚙️ DELUXY Engine"
-    )
-
-
-    if CAD_OK:
-
-        st.success(
-            "OpenCascade / CadQuery: READY"
-        )
-
-    else:
-
-        st.error(
-            "OpenCascade / CadQuery: NOT INSTALLED"
-        )
-
-
-    if GEMINI_OK:
-
-        st.success(
-            "Gemini SDK: READY"
-        )
-
-    else:
-
-        st.warning(
-            "Gemini SDK: unavailable"
-        )
-
-
-    current_material = (
-        st.session_state
-        .cad_state
-        .get(
-            "material",
-            "Steel"
-        )
-    )
-
-
-    material = st.selectbox(
-
-        "Material",
-
-        list(MATERIALS.keys()),
-
-        index=list(
-            MATERIALS.keys()
-        ).index(
-            current_material
-        )
-    )
-
-
-# ============================================================
-# USER PROMPT
-# ============================================================
-
-prompt = st.text_area(
-
-    "🧠 Jelaskan komponen yang ingin dibuat",
-
-    height=120,
-
-    placeholder="""
 Contoh:
 
-Buat gear 24 gigi, module 2,
-tebal 8mm, bore 10mm
+"Buat gear 24 gigi module 2 tebal 8mm bore 10mm"
 
-atau:
+harus menghasilkan:
 
-Buat shaft diameter 20mm
-panjang 120mm bore 8mm
-"""
-)
+teeth = 24
+module = 2
+pressure_angle = 20
+thickness = 8
+bore_diameter = 10
 
+Geometry:
 
-button1, button2 = st.columns(2)
+pitch diameter = module × teeth
 
+addendum = module
 
-with button1:
+dedendum = 1.25 × module
 
-    generate = st.button(
+Buat root circle.
 
-        "🚀 GENERATE CAD",
+Buat individual teeth.
 
-        type="primary",
+Buat outer tooth profile.
 
-        use_container_width=True
-    )
+Buat center bore.
 
+Lakukan boolean union.
 
-with button2:
+Lakukan boolean cut untuk bore.
 
-    reset = st.button(
+Hasil akhir HARUS merupakan actual CAD solid.
 
-        "↩️ RESET",
+JANGAN menggunakan cylinder sebagai pengganti gear.
 
-        use_container_width=True
-    )
+JANGAN membuat gambar 2D.
 
+JANGAN membuat PNG sebagai model.
 
-# ============================================================
-# RESET
-# ============================================================
+Jika memungkinkan gunakan involute tooth profile.
 
-if reset:
+Jika involute terlalu kompleks untuk versi awal, buat parametrik tooth profile yang stabil terlebih dahulu.
 
-    st.session_state.cad_state = (
-        DEFAULT_STATE.copy()
-    )
+Namun setiap tooth HARUS merupakan bagian dari solid.
 
-    st.session_state.shape = None
+========================================================
+SHAFT
+========================================================
 
-    st.rerun()
+Support:
 
+shaft
 
-# ============================================================
-# GENERATE
-# ============================================================
+Parameter:
 
-if generate and prompt.strip():
+diameter
+length
+bore_diameter
 
-    with st.spinner(
-        "AI membaca spesifikasi engineering..."
-    ):
+Contoh:
 
-        state, parser = (
-            parse_with_gemini(
+"Buat poros diameter 20mm panjang 100mm"
 
-                prompt.strip(),
+hasil:
 
-                st.session_state.cad_state
-            )
-        )
+cylindrical shaft
 
+Jika ada bore:
 
-    state["material"] = material
+buat hollow shaft.
 
+========================================================
+STEPPED SHAFT
+========================================================
 
-    st.session_state.cad_state = (
-        state
-    )
+Support:
 
+stepped shaft
 
-    try:
+poros bertingkat
 
-        with st.spinner(
-            "OpenCascade membangun solid CAD..."
-        ):
+Parameter:
 
-            st.session_state.shape = (
-                make_cad(state)
-            )
+overall_length
 
+section lengths
 
-        st.success(
-            f"Model berhasil dibuat • Parser: {parser}"
-        )
+section diameters
 
+Contoh:
 
-    except Exception as error:
+"Buat poros bertingkat panjang 150mm diameter 20mm, 30mm dan 15mm."
 
-        st.session_state.shape = None
+Buat actual stepped shaft.
 
-        st.error(
-            f"CAD generation gagal: {error}"
-        )
+========================================================
+CYLINDER
+========================================================
 
+Parameter:
 
-# ============================================================
-# PARAMETER EDITOR
-# ============================================================
+diameter
+length
+bore_diameter
 
-state = (
-    st.session_state.cad_state
-)
+Buat actual cylinder solid menggunakan CadQuery.
 
+========================================================
+CAD ENGINE
+========================================================
 
-params = (
-    state["parameters"]
-)
+Gunakan:
 
+CadQuery
+OpenCascade
 
-st.subheader(
-    "📐 Engineering Parameters"
-)
+CadQuery adalah geometry engine.
 
+GPT tidak membuat geometry.
 
-if state["component_type"] == "gear":
+Semua geometry harus dibuat secara deterministik berdasarkan parameter.
 
-    fields = [
+========================================================
+3D VIEWER
+========================================================
 
-        (
-            "Jumlah Gigi",
-            "teeth",
-            1
-        ),
+Buat interactive 3D viewer.
 
-        (
-            "Module (mm)",
-            "module",
-            0.1
-        ),
+Gunakan Plotly atau viewer 3D lain yang kompatibel dengan Streamlit.
 
-        (
-            "Pressure Angle (°)",
-            "pressure_angle",
-            1
-        ),
+Viewer harus:
 
-        (
-            "Tebal (mm)",
-            "thickness",
-            0.1
-        ),
+rotate
+zoom
+pan
 
-        (
-            "Bore (mm)",
-            "bore_diameter",
-            0.1
-        )
-    ]
+Model harus berasal dari tessellation actual CAD solid.
 
-else:
+Jangan gunakan gambar AI sebagai preview.
 
-    fields = [
+========================================================
+CHAT EXPERIENCE
+========================================================
 
-        (
-            key.replace(
-                "_",
-                " "
-            ).title(),
+UI harus terasa seperti AI engineering assistant.
 
-            key,
+Buat:
 
-            0.1
-        )
+Chat input
 
-        for key
-        in list(params.keys())[:5]
-    ]
+User message
 
+AI response
 
-columns = st.columns(
-    len(fields)
-)
+CAD generation status
 
+3D model
 
-for column, field in zip(
-    columns,
-    fields
-):
+Engineering parameters
 
-    label, key, step = field
+Export buttons
 
+Contoh:
 
-    with column:
+USER:
 
-        old_value = params.get(
-            key,
-            0
-        )
+"Buat gear 24 gigi module 2 bore 10mm tebal 8mm."
 
+AI:
 
-        if key == "teeth":
+"Siap. Saya mendeteksi spur gear dengan:
+24 gigi
+module 2
+pressure angle 20°
+tebal 8mm
+bore 10mm.
 
-            params[key] = int(
+Saya akan membuat model CAD parametrik."
 
-                st.number_input(
+Kemudian:
 
-                    label,
+GENERATING CAD...
 
-                    value=int(
-                        old_value
-                    ),
+Lalu model 3D muncul.
 
-                    step=1
-                )
-            )
+========================================================
+PARAMETER EDITOR
+========================================================
 
-        else:
+Setelah model dibuat, tampilkan parameter editor.
 
-            params[key] = float(
+Untuk gear:
 
-                st.number_input(
+Jumlah Gigi
+Module
+Pressure Angle
+Thickness
+Bore Diameter
 
-                    label,
+User dapat mengubah angka.
 
-                    value=float(
-                        old_value
-                    ),
+Tombol:
 
-                    step=step
-                )
-            )
+REBUILD CAD
 
+Jika user mengubah:
 
-# ============================================================
-# REBUILD
-# ============================================================
+24 gigi → 32 gigi
 
-if st.button(
+engine harus benar-benar membuat gear baru dengan 32 gigi.
 
-    "🔧 REBUILD MODEL",
+========================================================
+MATERIAL
+========================================================
 
-    use_container_width=True
-):
+Support:
 
-    try:
+Steel
+Stainless Steel
+Aluminium
+Brass
+Copper
+Titanium
+Plastic
 
-        with st.spinner(
-            "Rebuilding CAD..."
-        ):
+Material minimal digunakan untuk:
 
-            st.session_state.shape = (
-                make_cad(state)
-            )
+display
+density
+estimated weight
 
+========================================================
+ENGINEERING INFORMATION
+========================================================
 
-        st.success(
-            "Model berhasil diperbarui."
-        )
+Untuk gear tampilkan:
 
+Number of teeth
+Module
+Pitch diameter
+Outside diameter
+Root diameter
+Pressure angle
+Thickness
+Bore diameter
 
-    except Exception as error:
+Hitung:
 
-        st.error(
-            f"Rebuild gagal: {error}"
-        )
+pitch_diameter = module × teeth
 
+outside_diameter = pitch_diameter + 2 × module
 
-# ============================================================
-# 3D MODEL
-# ============================================================
+root_diameter = pitch_diameter - 2 × 1.25 × module
 
-shape = (
-    st.session_state.shape
-)
+Berikan estimasi:
 
+volume
+mass
 
-if shape is not None:
+berdasarkan density material.
 
-    st.subheader(
-        "🧊 Real 3D CAD Preview"
-    )
+========================================================
+EXPORT
+========================================================
 
+Sediakan:
 
-    show_3d(
+DOWNLOAD STEP
 
-        shape,
+DOWNLOAD STL
 
-        (
-            state["component_type"]
-            .replace(
-                "_",
-                " "
-            )
-            .title()
-            +
-            " • "
-            +
-            state["material"]
-        )
-    )
+STEP harus berasal dari CadQuery/OpenCascade.
 
+STL harus berasal dari actual CAD solid.
 
-    st.subheader(
-        "📦 Export CAD"
-    )
+========================================================
+ERROR HANDLING
+========================================================
 
+Jika OpenAI API error:
 
-    export1, export2 = (
-        st.columns(2)
-    )
+jangan crash.
 
+Tampilkan:
 
-    with export1:
+"AI service unavailable."
 
-        try:
+Jika OpenAI tidak tersedia, local parser tetap dapat digunakan untuk command sederhana.
 
-            st.download_button(
+Jika CAD geometry error:
 
-                "⬇️ DOWNLOAD STEP",
+tampilkan error engineering.
 
-                data=export_step(
-                    shape
-                ),
+Contoh:
 
-                file_name=(
-                    "DELUXY_model.step"
-                ),
+"Bore 50mm terlalu besar untuk gear ini."
 
-                mime=(
-                    "application/step"
-                ),
+Jangan fallback menjadi cylinder.
 
-                use_container_width=True
-            )
+========================================================
+NO GEMINI
+========================================================
 
-        except Exception as error:
+Hapus:
 
-            st.error(
-                f"STEP export gagal: {error}"
-            )
+google-generativeai
 
+Hapus:
 
-    with export2:
+genai
 
-        try:
+Hapus:
 
-            st.download_button(
+GEMINI_API_KEY
 
-                "⬇️ DOWNLOAD STL",
+Hapus semua function Gemini.
 
-                data=export_stl(
-                    shape
-                ),
+Gunakan:
 
-                file_name=(
-                    "DELUXY_model.stl"
-                ),
+OPENAI_API_KEY
 
-                mime="model/stl",
+========================================================
+REQUIREMENTS.TXT
+========================================================
 
-                use_container_width=True
-            )
+Gunakan:
 
-        except Exception as error:
+streamlit
+numpy
+openai
+cadquery
+plotly
 
-            st.error(
-                f"STL export gagal: {error}"
-            )
+Jangan gunakan:
 
+google-generativeai
 
-else:
+========================================================
+SECURITY
+========================================================
 
-    st.info(
-        "Masukkan spesifikasi lalu klik GENERATE CAD."
-    )
+API key hanya boleh berada di:
 
+Streamlit Secrets
 
-# ============================================================
-# DIAGNOSTICS
-# ============================================================
+atau environment variable.
 
-with st.expander(
-    "🔍 Engine Diagnostics"
-):
+Jangan tampilkan API key di UI.
 
-    st.json({
+Jangan print API key.
 
-        "CadQuery":
-            CAD_OK,
+Jangan simpan API key ke source code.
 
-        "OpenCascade":
-            CAD_OK,
+========================================================
+STREAMLIT
+========================================================
 
-        "Plotly":
-            PLOTLY_OK,
+Aplikasi harus dapat dijalankan dengan:
 
-        "Gemini":
-            GEMINI_OK,
+streamlit run app.py
 
-        "Component":
-            state["component_type"],
+========================================================
+TEST WAJIB
+========================================================
 
-        "Material":
-            state["material"],
+TEST 1:
 
-        "Parameters":
-            state["parameters"]
-    })
+User:
+
+"Buat gear 24 gigi module 2 bore 10mm tebal 8mm"
+
+Expected:
+
+gear
+
+24 teeth
+
+module 2
+
+pressure angle 20
+
+thickness 8
+
+bore 10
+
+3D model harus memiliki 24 gigi.
+
+========================================================
+
+TEST 2:
+
+User:
+
+"Buat gear 32 gigi module 1.5 bore 8mm"
+
+Expected:
+
+gear
+
+32 teeth
+
+module 1.5
+
+bore 8
+
+3D model harus memiliki 32 gigi.
+
+========================================================
+
+TEST 3:
+
+User:
+
+"Buat poros diameter 20mm panjang 100mm"
+
+Expected:
+
+shaft
+
+diameter 20
+
+length 100
+
+========================================================
+
+TEST 4:
+
+User:
+
+"Buat poros bertingkat panjang 150mm"
+
+Jika diameter section belum diberikan:
+
+AI harus meminta klarifikasi.
+
+Jangan mengarang ukuran critical.
+
+========================================================
+PRIORITAS
+========================================================
+
+Prioritas pengembangan:
+
+1. STABIL
+2. GPT API bekerja
+3. Natural language bekerja
+4. Gear benar
+5. 3D viewer benar
+6. STEP export benar
+7. STL export benar
+8. Parameter editor
+9. Engineering calculation
+10. Tambah component lain
+
+Jangan membuat terlalu banyak fitur jika fitur utama belum stabil.
+
+========================================================
+OUTPUT
+========================================================
+
+Berikan FULL:
+
+app.py
+
+requirements.txt
+
+Semua import harus lengkap.
+
+Tidak boleh ada function yang dipanggil tetapi belum dibuat.
+
+Tidak boleh ada placeholder seperti:
+
+# TODO
+
+# implement later
+
+pass
+
+Tidak boleh ada fake geometry.
+
+Pastikan aplikasi dapat langsung dijalankan.
+
+SEKALI LAGI:
+
+DELUXY.Ai menggunakan OPENAI sebagai OTAK.
+
+CADQUERY/OPENCASCADE sebagai TANGAN.
+
+PLOTLY sebagai MATA.
+
+User berbicara dengan DELUXY.Ai melalui chat.
+
+GPT memahami permintaan.
+
+CAD engine membuat geometry.
+
+JANGAN GUNAKAN GEMINI SAMA SEKALI.
