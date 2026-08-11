@@ -457,6 +457,13 @@ def build_cadquery_gear(
     thickness,
     bore
 ):
+    """
+    Membuat solid gear menggunakan CadQuery.
+
+    Profil dibuat sebagai closed polygon kemudian di-extrude.
+    Bore dibuat sebagai solid cylinder dan dipotong menggunakan
+    boolean cut agar lebih stabil daripada .hole().
+    """
 
     points, root_radius, outer_radius, bore_radius = \
         create_gear_polygon(
@@ -466,6 +473,24 @@ def build_cadquery_gear(
             bore
         )
 
+    # --------------------------------------------------------
+    # BASIC VALIDATION
+    # --------------------------------------------------------
+
+    if thickness <= 0:
+        raise ValueError(
+            "Thickness harus lebih besar dari 0."
+        )
+
+    if len(points) < 8:
+        raise ValueError(
+            "Profil gear tidak memiliki cukup titik."
+        )
+
+    # --------------------------------------------------------
+    # CREATE GEAR BODY
+    # --------------------------------------------------------
+
     gear = (
         cq.Workplane("XY")
         .polyline(points)
@@ -473,19 +498,27 @@ def build_cadquery_gear(
         .extrude(thickness)
     )
 
-    # Central bore
-    if bore > 0:
-
-        gear = (
-            gear
-            .faces(">Z")
-            .workplane()
-            .hole(bore)
+    # Pastikan solid berhasil dibuat
+    if gear.val().isNull():
+        raise ValueError(
+            "Gear body menghasilkan solid kosong."
         )
 
+    # --------------------------------------------------------
+    # CENTRAL BORE
+    # --------------------------------------------------------
+
+    if bore > 0:
+
+        bore_tool = (
+            cq.Workplane("XY")
+            .circle(bore / 2.0)
+            .extrude(thickness)
+        )
+
+        gear = gear.cut(bore_tool)
+
     return gear
-
-
 # ============================================================
 # CADQUERY SHAFT
 # ============================================================
