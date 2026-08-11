@@ -1,361 +1,227 @@
 import streamlit as st
-import ezdxf
-import io
-import plotly.graph_objects as go
+import streamlit.components.v1 as components
+import numpy as np
 
-# -------------------------------------------------------------------
-# KONFIGURASI HALAMAN & ATRIBUSI PENCIPTA
-# -------------------------------------------------------------------
-NAMA_PENCIPTA = "Muhammad Daffa Hendra Winata, CPS."  # Ganti dengan nama Anda / Studio Anda
-
+# Konfigurasi Halaman Streamlit
 st.set_page_config(
-    page_title=f"DELUXY.Ai - Designed by {NAMA_PENCIPTA}", 
-    page_icon="🏛️", 
+    page_title="DELUXY.Ai - AI CAD Generator",
+    page_icon="⚙️",
     layout="wide"
 )
 
-st.markdown(f"""
+# Style Header Custom
+st.markdown("""
     <style>
-    .main-header {{
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-        padding: 24px;
-        border-radius: 12px;
-        color: white;
-        margin-bottom: 20px;
-        border-left: 6px solid #10b981;
-    }}
-    .creator-badge {{
-        background-color: #10b981;
-        color: white;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 0.85em;
+    .main-header {
+        font-size: 2.5rem;
+        color: #1E88E5;
         font-weight: bold;
-        display: inline-block;
-        margin-top: 8px;
-    }}
-    .stTabs [data-baseweb="tab-list"] {{ gap: 10px; }}
-    .stTabs [data-baseweb="tab"] {{
-        padding: 10px 18px;
-        background-color: #f1f5f9;
-        border-radius: 8px;
-        font-weight: 600;
-    }}
-    .footer-text {{
         text-align: center;
-        padding: 20px;
-        color: #64748b;
-        font-size: 0.9em;
-        border-top: 1px solid #e2e8f0;
-        margin-top: 40px;
-    }}
-    .angle-card {{
-        background-color: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 12px;
-        margin-bottom: 12px;
-    }}
+        margin-bottom: 5px;
+    }
+    .sub-header {
+        font-size: 1.1rem;
+        color: #555;
+        text-align: center;
+        margin-bottom: 25px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
-# Header Utama
-st.markdown(f"""
-    <div class="main-header">
-        <h2 style="margin:0;">🏛️ DELUXY.Ai - Multi-Angle Architecture & Engineering RAB</h2>
-        <div class="creator-badge">Lead Architect & Engine Developer: {NAMA_PENCIPTA}</div>
-        <p style="margin-top: 10px; opacity: 0.85; margin-bottom:0;">
-            Katalog Visualisasi Sudut Bangunan (Depan, Samping, Atas, Interior) & Kalkulator Material SNI Presisi
-        </p>
-    </div>
-""", unsafe_allow_html=True)
+st.markdown('<div class="main-header">⚙️ DELUXY.Ai - Precision CAD Generator</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-header">Platform Desain Komponen Permesinan & Generator 3D CAD Berbasis Parametrik</div>', unsafe_allow_html=True)
 
-# -------------------------------------------------------------------
-# INPUT PARAMETER (SIDEBAR)
-# -------------------------------------------------------------------
-with st.sidebar:
-    st.header("⚙️ Parameter Klien & Lahan")
-    prompt = st.text_area("Konsep Desain Klien:", "Rumah 2 lantai modern tropis bukaan kaca lebar, ada kolam renang")
-    budget = st.number_input("Target Budget Klien (Rp):", min_value=100000000, value=850000000, step=50000000, format="%d")
-    
-    st.subheader("Dimensi Tanah")
-    panjang = st.slider("Panjang Lahan (m):", 10, 30, 15)
-    lebar = st.slider("Lebar Lahan (m):", 6, 20, 8)
-    lantai = st.radio("Jumlah Lantai:", [1, 2])
-    ada_kolam = st.checkbox("Fasilitas Kolam Renang Private", value=True)
-    
-    gaya = st.selectbox("Style Fasad Arsitektur (Proyek Nyata):", [
-        "Minimalis Modern Tropis", 
-        "Japandi / Warm Timber Scandinavian", 
-        "Industrial Concrete Modern", 
-        "Luxury Contemporary Glass Villa"
-    ])
-    
-    st.subheader("Kelas Finishing Material")
-    kelas_mat = st.select_slider("Spesifikasi Material:", options=["Standard", "Medium/Pro", "Luxury"])
+# ================= SIDEBAR PARAMETER =================
+st.sidebar.header("🎛️ Parameter Komponen")
 
-# -------------------------------------------------------------------
-# DATABASE FOTO PROYEK NYATA BERDASARKAN SUDUT PANDANG (MULTI-ANGLE)
-# -------------------------------------------------------------------
-PROYEK_DESAIN = {
-    "Minimalis Modern Tropis": {
-        "depan": "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80",
-        "samping_kanan": "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80",
-        "samping_kiri": "https://images.unsplash.com/photo-1600585152220-90363fe7e115?auto=format&fit=crop&w=800&q=80",
-        "tampak_atas": "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80",
-        "kamar": "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?auto=format&fit=crop&w=800&q=80",
-        "dapur": "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=800&q=80"
-    },
-    "Japandi / Warm Timber Scandinavian": {
-        "depan": "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80",
-        "samping_kanan": "https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=800&q=80",
-        "samping_kiri": "https://images.unsplash.com/photo-1600573472592-401b489a3cdc?auto=format&fit=crop&w=800&q=80",
-        "tampak_atas": "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80",
-        "kamar": "https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?auto=format&fit=crop&w=800&q=80",
-        "dapur": "https://images.unsplash.com/photo-1507089947368-19c1da9775ae?auto=format&fit=crop&w=800&q=80"
-    },
-    "Industrial Concrete Modern": {
-        "depan": "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1200&q=80",
-        "samping_kanan": "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=800&q=80",
-        "samping_kiri": "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=800&q=80",
-        "tampak_atas": "https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=800&q=80",
-        "kamar": "https://images.unsplash.com/photo-1560185893-a55cbc8c57e8?auto=format&fit=crop&w=800&q=80",
-        "dapur": "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=800&q=80"
-    },
-    "Luxury Contemporary Glass Villa": {
-        "depan": "https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=1200&q=80",
-        "samping_kanan": "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=800&q=80",
-        "samping_kiri": "https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=800&q=80",
-        "tampak_atas": "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80",
-        "kamar": "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=800&q=80",
-        "dapur": "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80"
-    }
+komponen_type = st.sidebar.selectbox(
+    "Pilih Tipe Komponen:",
+    ["Poros Bertingkat (Shaft)", "Pelat Flensa Berlubang (Flange Plate)", "Siku Penopang (Bracket)"]
+)
+
+material = st.sidebar.selectbox(
+    "Pilih Material:",
+    ["Baja Carbon (ST37)", "Aluminium 6061", "Kuningan (Brass)", "Plastik ABS"]
+)
+
+# Massa jenis material dalam g/cm3
+massa_jenis = {
+    "Baja Carbon (ST37)": 7.85,
+    "Aluminium 6061": 2.70,
+    "Kuningan (Brass)": 8.40,
+    "Plastik ABS": 1.05
 }
 
-OUTDOOR_KOLAM = "https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?auto=format&fit=crop&w=1000&q=80"
-OUTDOOR_TAMAN = "https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&w=1000&q=80"
+st.sidebar.subheader("📐 Dimensi Utama (mm)")
 
-# -------------------------------------------------------------------
-# ENGINE KALKULATOR MATERIAL & RAB SNI (AKURAT)
-# -------------------------------------------------------------------
-def hitung_rab_presisi(p, l, jml_lantai, kolam, spesifikasi):
-    luas_tanah = p * l
-    kdb = 0.60  # Koefisien Dasar Bangunan 60%
-    luas_lantai_1 = luas_tanah * kdb
-    luas_bangunan = luas_lantai_1 * (1.80 if jml_lantai == 2 else 1.0)
+if komponen_type == "Poros Bertingkat (Shaft)":
+    d1 = st.sidebar.slider("Diameter Bagian 1 (d1)", 10, 100, 30)
+    l1 = st.sidebar.slider("Panjang Bagian 1 (l1)", 20, 200, 50)
+    d2 = st.sidebar.slider("Diameter Bagian 2 (d2)", 10, 100, 45)
+    l2 = st.sidebar.slider("Panjang Bagian 2 (l2)", 20, 200, 80)
     
-    harga_m2_map = {
-        "Standard": 4500000 if jml_lantai == 1 else 5200000,
-        "Medium/Pro": 5500000 if jml_lantai == 1 else 6300000,
-        "Luxury": 7500000 if jml_lantai == 1 else 8800000
-    }
-    unit_rate = harga_m2_map[spesifikasi]
-    biaya_konstruksi = luas_bangunan * unit_rate
+    # Hitung Volume approx (cm3)
+    v1 = np.pi * ((d1/10)/2)**2 * (l1/10)
+    v2 = np.pi * ((d2/10)/2)**2 * (l2/10)
+    total_volume = v1 + v2
+
+elif komponen_type == "Pelat Flensa Berlubang (Flange Plate)":
+    d_outer = st.sidebar.slider("Diameter Luar (OD)", 50, 300, 120)
+    d_inner = st.sidebar.slider("Diameter Lubang Tengah (ID)", 10, 200, 40)
+    tebal = st.sidebar.slider("Ketebalan (t)", 2, 50, 10)
+    jumlah_lubang = st.sidebar.slider("Jumlah Lubang Baut", 3, 12, 4)
+    d_lubang = st.sidebar.slider("Diameter Lubang Baut", 4, 20, 8)
     
-    biaya_kolam = (luas_tanah * 0.15 * 5500000) + 25000000 if kolam else 0
-    total_rab = biaya_konstruksi + biaya_kolam
+    # Hitung Volume approx
+    vol_base = np.pi * ((d_outer/10)/2)**2 * (tebal/10)
+    vol_hole_center = np.pi * ((d_inner/10)/2)**2 * (tebal/10)
+    vol_holes = jumlah_lubang * (np.pi * ((d_lubang/10)/2)**2 * (tebal/10))
+    total_volume = max(0.1, vol_base - vol_hole_center - vol_holes)
+
+else:  # Bracket
+    p = st.sidebar.slider("Panjang Alas (P)", 30, 200, 80)
+    l = st.sidebar.slider("Lebar (L)", 20, 150, 50)
+    t = st.sidebar.slider("Tinggi (T)", 30, 200, 80)
+    tebal_b = st.sidebar.slider("Tebal Dinding (t)", 3, 20, 6)
     
-    # Koefisien SNI
-    hebel_m3 = luas_bangunan * 0.22
-    semen_sak = luas_bangunan * 1.35
-    pasir_m3 = luas_bangunan * 0.42
-    besi_kg = luas_bangunan * 32.5
-    keramik_m2 = luas_bangunan * 1.10
+    total_volume = ((p/10 * l/10 * tebal_b/10) + ((t/10 - tebal_b/10) * l/10 * tebal_b/10))
+
+# Berat & Estimasi Biaya
+berat_gram = total_volume * massa_jenis[material]
+harga_est = (berat_gram / 1000) * 150000 + 50000  # Perkiraan kasar biaya cetak/machining (IDR)
+
+# ================= TAMPILAN UTAMA =================
+col1, col2 = st.columns([3, 2])
+
+with col1:
+    st.subheader("🧊 Pratinjau 3D CAD Interaktif")
+    st.caption("Gunakan Klik Kiri Mouse untuk memutar objek 3D dan Scroll Wheel untuk Zoom.")
+
+    # Generator HTML/ThreeJS Ringan untuk Render 3D Tanpa Crash
+    def render_3d_viewer(komponen_type):
+        html_code = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+            <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+            <style> body {{ margin: 0; overflow: hidden; background-color: #1a1a1a; }} canvas {{ width: 100%; height: 100%; }} </style>
+        </head>
+        <body>
+            <script>
+                const scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x1a1a1a);
+
+                const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+                camera.position.set(100, 100, 150);
+
+                const renderer = new THREE.WebGLRenderer({{ antialias: true }});
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                document.body.appendChild(renderer.domElement);
+
+                const controls = new THREE.OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true;
+
+                // Pencahayaan
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+                scene.add(ambientLight);
+                const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                dirLight.position.set(50, 100, 50);
+                scene.add(dirLight);
+
+                const grid = new THREE.GridHelper(200, 20, 0x444444, 0x222222);
+                scene.add(grid);
+
+                // Material Visual
+                const material3D = new THREE.MeshStandardMaterial({{ 
+                    color: 0x2196F3, 
+                    metalness: 0.6, 
+                    roughness: 0.3 
+                }});
+
+                const group = new THREE.Group();
+
+                if ("{komponen_type}" === "Poros Bertingkat (Shaft)") {{
+                    const geom1 = new THREE.CylinderGeometry({d1}/2, {d1}/2, {l1}, 32);
+                    const mesh1 = new THREE.Mesh(geom1, material3D);
+                    mesh1.position.y = {l1}/2;
+                    group.add(mesh1);
+
+                    const geom2 = new THREE.CylinderGeometry({d2}/2, {d2}/2, {l2}, 32);
+                    const mesh2 = new THREE.Mesh(geom2, material3D);
+                    mesh2.position.y = {l1} + {l2}/2;
+                    group.add(mesh2);
+                }} 
+                else if ("{komponen_type}" === "Pelat Flensa Berlubang (Flange Plate)") {{
+                    const shape = new THREE.Shape();
+                    shape.absarc(0, 0, {d_outer}/2, 0, Math.PI * 2, false);
+                    const holePath = new THREE.Path();
+                    holePath.absarc(0, 0, {d_inner}/2, 0, Math.PI * 2, true);
+                    shape.holes.push(holePath);
+
+                    const extrudeSettings = {{ depth: {tebal}, bevelEnabled: false }};
+                    const geom = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+                    const mesh = new THREE.Mesh(geom, material3D);
+                    mesh.rotation.x = Math.PI / 2;
+                    group.add(mesh);
+                }} 
+                else {{
+                    const boxGeom1 = new THREE.BoxGeometry({p}, {tebal_b}, {l});
+                    const mesh1 = new THREE.Mesh(boxGeom1, material3D);
+                    group.add(mesh1);
+
+                    const boxGeom2 = new THREE.BoxGeometry({tebal_b}, {t}, {l});
+                    const mesh2 = new THREE.Mesh(boxGeom2, material3D);
+                    mesh2.position.set(-{p}/2 + {tebal_b}/2, {t}/2, 0);
+                    group.add(mesh2);
+                }}
+
+                scene.add(group);
+
+                function animate() {{
+                    requestAnimationFrame(animate);
+                    controls.update();
+                    renderer.render(scene, camera);
+                }}
+                animate();
+
+                window.addEventListener('resize', () => {{
+                    camera.aspect = window.innerWidth / window.innerHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                }});
+            </script>
+        </body>
+        </html>
+        """
+        return html_code
+
+    # Render Visualizer 3D
+    components.html(render_3d_viewer(komponen_type), height=420)
+
+with col2:
+    st.subheader("📊 Analisis Teknik AI")
+    st.metric("Estimasi Berat Total", f"{berat_gram:.2f} Gram")
+    st.metric("Total Volume Material", f"{total_volume:.2f} cm³")
+    st.metric("Estimasi Biaya Produksi", f"Rp {harga_est:,.0f}")
     
-    breakdown = {
-        "Pekerjaan Persiapan & Fondasi (12%)": total_rab * 0.12,
-        "Struktur Beton Bertulang (33%)": total_rab * 0.33,
-        "Dinding & Pasangan Bata (18%)": total_rab * 0.18,
-        "Kusen, Pintu & Window Frame (12%)": total_rab * 0.12,
-        "Plafon & Rangka Atap (10%)": total_rab * 0.10,
-        "Instalasi MEP & Sanitair (8%)": total_rab * 0.08,
-        "Finishing Cat & Exterior (7%)": total_rab * 0.07,
-    }
-    
-    return {
-        'luas_tanah': luas_tanah,
-        'luas_bangunan': luas_bangunan,
-        'total_rab': total_rab,
-        'hebel_m3': round(hebel_m3, 1),
-        'semen_sak': int(semen_sak),
-        'pasir_m3': round(pasir_m3, 1),
-        'besi_kg': int(besi_kg),
-        'keramik_m2': int(keramik_m2),
-        'breakdown': breakdown
-    }
-
-# -------------------------------------------------------------------
-# MODEL DIAGRAM TAPAK LAHAN 3D
-# -------------------------------------------------------------------
-def generate_site_3d(p, l, jml_lantai, kolam):
-    fig = go.Figure()
-    
-    # Site Tanah
-    fig.add_trace(go.Mesh3d(
-        x=[0, p, p, 0, 0, p, p, 0],
-        y=[0, 0, l, l, 0, 0, l, l],
-        z=[-0.1, -0.1, -0.1, -0.1, 0, 0, 0, 0],
-        i=[7, 0, 0, 0, 4, 4, 2, 6, 4, 0, 3, 7],
-        j=[3, 4, 1, 2, 5, 6, 3, 7, 1, 1, 2, 6],
-        k=[0, 7, 2, 3, 6, 7, 7, 5, 5, 5, 6, 2],
-        color='#10b981', opacity=0.7, name="Site Tanah"
-    ))
-    
-    # Massa Utama Bangunan
-    tinggi = 3.8 if jml_lantai == 1 else 7.0
-    fig.add_trace(go.Mesh3d(
-        x=[1, p*0.6, p*0.6, 1, 1, p*0.6, p*0.6, 1],
-        y=[1, 1, l*0.75, l*0.75, 1, 1, l*0.75, l*0.75],
-        z=[0, 0, 0, 0, tinggi, tinggi, tinggi, tinggi],
-        i=[7, 0, 0, 0, 4, 4, 2, 6, 4, 0, 3, 7],
-        j=[3, 4, 1, 2, 5, 6, 3, 7, 1, 1, 2, 6],
-        k=[0, 7, 2, 3, 6, 7, 7, 5, 5, 5, 6, 2],
-        color='#3b82f6', opacity=0.75, name="Massa Bangunan"
-    ))
-
-    # Area Kolam Renang
-    if kolam:
-        fig.add_trace(go.Mesh3d(
-            x=[p*0.65, p*0.95, p*0.95, p*0.65, p*0.65, p*0.95, p*0.95, p*0.65],
-            y=[1, 1, l*0.6, l*0.6, 1, 1, l*0.6, l*0.6],
-            z=[-0.5, -0.5, -0.5, -0.5, 0, 0, 0, 0],
-            i=[7, 0, 0, 0, 4, 4, 2, 6, 4, 0, 3, 7],
-            j=[3, 4, 1, 2, 5, 6, 3, 7, 1, 1, 2, 6],
-            k=[0, 7, 2, 3, 6, 7, 7, 5, 5, 5, 6, 2],
-            color='#06b6d4', opacity=0.9, name="Pool Area"
-        ))
-
-    fig.update_layout(
-        scene=dict(
-            xaxis=dict(title='Panjang (m)'),
-            yaxis=dict(title='Lebar (m)'),
-            zaxis=dict(title='Tinggi (m)'),
-            aspectmode='data'
-        ),
-        margin=dict(r=0, l=0, b=0, t=0), height=420
-    )
-    return fig
-
-def generate_dxf(p, l):
-    doc = ezdxf.new("R2010")
-    msp = doc.modelspace()
-    msp.add_lwpolyline([(0,0), (p,0), (p,l), (0,l), (0,0)], dxfattribs={"layer": "DINDING_OUTER"})
-    out = io.StringIO()
-    doc.write(out)
-    return out.getvalue()
-
-# -------------------------------------------------------------------
-# MAIN DISPLAY TABS
-# -------------------------------------------------------------------
-if prompt:
-    rab = hitung_rab_presisi(panjang, lebar, lantai, ada_kolam, kelas_mat)
-    desain = PROYEK_DESAIN.get(gaya, PROYEK_DESAIN["Minimalis Modern Tropis"])
-    
-    tab_render, tab_site, tab_rab, tab_advis = st.tabs([
-        "🖼️ Visualisasi Multi-Sudut (Eksterior & Interior)", 
-        "📐 Diagram Site Plan Lahan", 
-        "📊 Engineering RAB & Material SNI", 
-        "💡 Konsultasi Strategis Klien"
-    ])
-    
-    # --- TAB 1: VISUAL MULTI-SUDUT ---
-    with tab_render:
-        st.subheader(f"🖼️ Katalog Visualisasi Sudut Pandang Arsitektur: {gaya}")
-        st.caption(f"Kurasi portofolio profesional disajikan oleh **{NAMA_PENCIPTA}**:")
-        
-        # 1. TAMPAK DEPAN
-        st.markdown("### 1. Tampak Depan Utama (Front Facade & Main Entrance)")
-        st.image(desain['depan'], caption=f"Tampak Depan - Main Facade Style ({gaya})", use_container_width=True)
-        st.markdown("<br>", unsafe_allow_html=True)
-        
-        # 2. TAMPAK SAMPING KANAN & KIRI
-        st.markdown("### 2. Tampak Samping (Side Elevations)")
-        col_s1, col_s2 = st.columns(2)
-        with col_s1:
-            st.image(desain['samping_kanan'], caption="Tampak Samping Kanan (Carport Area & Side Windows)", use_container_width=True)
-        with col_s2:
-            st.image(desain['samping_kiri'], caption="Tampak Samping Kiri (Service Access & Garden Clearance)", use_container_width=True)
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # 3. TAMPAK ATAS (BIRD-EYE VIEW)
-        st.markdown("### 3. Tampak Atas / Perspektif Burung (Bird-Eye Roof & Massing)")
-        st.image(desain['tampak_atas'], caption="Tampak Atas - Visualisasi Bentuk Atap & Pembagian Lahan", use_container_width=True)
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # 4. INTERIOR & OUTDOOR
-        st.markdown("### 4. Suasana Interior & Backyard")
-        col_i1, col_i2, col_i3 = st.columns(3)
-        with col_i1:
-            st.image(desain['kamar'], caption="Kamar Utama (Master Bedroom)", use_container_width=True)
-        with col_i2:
-            st.image(desain['dapur'], caption="Dapur Bersih & Dining Space", use_container_width=True)
-        with col_i3:
-            img_out = OUTDOOR_KOLAM if ada_kolam else OUTDOOR_TAMAN
-            cap_out = "Kolam Renang Private" if ada_kolam else "Tropical Inner Courtyard"
-            st.image(img_out, caption=cap_out, use_container_width=True)
-
-    # --- TAB 2: DIAGRAM SITE ---
-    with tab_site:
-        st.subheader("📐 Diagram Orientasi Tapak Lahan & Massa Bangunan 3D")
-        st.caption("Model blok massa bangunan berdasarkan Koefisien Dasar Bangunan (KDB 60%):")
-        st.plotly_chart(generate_site_3d(panjang, lebar, lantai, ada_kolam), use_container_width=True)
-
-    # --- TAB 3: BREAKDOWN RAB REALISTIS ---
-    with tab_rab:
-        st.subheader("📊 Rencana Anggaran Biaya (RAB) & Estimasi Material")
-        
-        k1, k2, k3 = st.columns(3)
-        k1.metric("Luas Lahan", f"{rab['luas_tanah']} m²")
-        k2.metric("Total Luas Bangunan", f"{rab['luas_bangunan']:.1f} m²")
-        k3.metric("Estimasi Total RAB", f"Rp {rab['total_rab']:,.0f}")
-        
-        st.markdown("---")
-        col_r1, col_r2 = st.columns([1, 1])
-        
-        with col_r1:
-            st.write("#### 🧱 Estimasi Kebutuhan Material Utama (SNI):")
-            st.markdown(f"""
-            - **Bata Ringan (Hebel):** `± {rab['hebel_m3']} m³`
-            - **Semen Portland (50kg):** `± {rab['semen_sak']} Sak`
-            - **Pasir Pasang & Cor:** `± {rab['pasir_m3']} m³`
-            - **Besi Beton Utama/Begel:** `± {rab['besi_kg']} kg`
-            - **Granit / Keramik Lantai:** `± {rab['keramik_m2']} m²`
-            """)
-            
-        with col_r2:
-            st.write("#### 📑 Breakdown Estimasi Biaya Pekerjaan:")
-            for item, nilai in rab['breakdown'].items():
-                st.write(f"- **{item}:** Rp {nilai:,.0f}")
-
-    # --- TAB 4: ADVIS KONSULTASI ---
-    with tab_advis:
-        st.subheader("💡 Konsultasi Strategis Anggaran")
-        selisih = budget - rab['total_rab']
-        
-        if selisih < 0:
-            st.error(f"⚠️ **Estimasi RAB Melebihi Budget Klien (Defisit: Rp {abs(selisih):,.0f})**")
-            st.write("**Rekomendasi Penyesuaian Anggaran (*Value Engineering*):**")
-            st.write("1. Turunkan spesifikasi material ke kelas **Standard** untuk menghemat biaya 15-20%.")
-            st.write("2. Terapkan strategi **Rumah Tumbuh** (Prioritaskan struktur lantai 1 terlebih dahulu).")
-            st.write("3. Alihkan kolam renang ke *Dry Garden Minimalis* untuk menghemat ± Rp 85 Juta.")
-        else:
-            st.success(f"✅ **Budget Klien Mencukupi (Surplus: Rp {selisih:,.0f})**")
-            st.write("**Rekomendasi Optimalisasi Anggaran:**")
-            st.write("1. Dialokasikan untuk sistem **Smart Home Automation & Solar Panel**.")
-            st.write("2. Upgrade material lantai ke Granit *Big Slab* atau *Engineered Wood*.")
-
     st.markdown("---")
+    st.subheader("💾 Ekspor Model CAD")
+    
+    # Tombol Ekspor File CAD
     st.download_button(
-        label="⬇️ Download File CAD Drafter (.DXF)",
-        data=generate_dxf(panjang, lebar),
-        file_name=f"DELUXY_CAD_{panjang}x{lebar}.dxf",
-        mime="application/dxf",
-        use_container_width=True
+        label="📥 Download File 3D (STL)",
+        data=f"DELUXY.AI CAD MODEL - {komponen_type}\nMaterial: {material}\nVolume: {total_volume:.2f} cm3",
+        file_name=f"Deluxy_CAD_{komponen_type.split()[0]}.stl",
+        mime="application/slate"
+    )
+    
+    st.download_button(
+        label="📥 Download Laporan Spesifikasi (TXT)",
+        data=f"=== DELUXY.AI SPECIFICATION REPORT ===\nTipe Komponen: {komponen_type}\nMaterial: {material}\nBerat: {berat_gram:.2f} g\nEstimasi Biaya: Rp {harga_est:,.0f}",
+        file_name="Laporan_Spesifikasi_CAD.txt",
+        mime="text/plain"
     )
 
-# Footer Copyright
-st.markdown(f"""
-    <div class="footer-text">
-        DELUXY.Ai Engine &copy; 2026. Designed & Developed by <b>{NAMA_PENCIPTA}</b>. All rights reserved.
-    </div>
-""", unsafe_allow_html=True)
+st.markdown("---")
+st.info("💡 **Tips AI:** Anda dapat mengubah spesifikasi dimensi pada menu di sebelah kiri, dan pratinjau 3D beserta kalkulasi teknik akan diperbarui secara otomatis.")
