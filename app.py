@@ -1,11 +1,14 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import numpy as np
+import json
 import re
+from google import genai
+from google.genai import types
 
 # Konfigurasi Halaman Streamlit
 st.set_page_config(
-    page_title="DELUXY.Ai - Text-to-3D CAD Engine",
+    page_title="DELUXY.Ai - Generative Text-to-3D CAD Engine",
     page_icon="🤖",
     layout="wide"
 )
@@ -14,14 +17,14 @@ st.set_page_config(
 st.markdown("""
     <style>
     .main-header {
-        font-size: 2.8rem;
+        font-size: 2.5rem;
         color: #1565C0;
         font-weight: bold;
         text-align: center;
         margin-bottom: 5px;
     }
     .sub-header {
-        font-size: 1.1rem;
+        font-size: 1rem;
         color: #555;
         text-align: center;
         margin-bottom: 25px;
@@ -29,18 +32,21 @@ st.markdown("""
     .ai-badge {
         background-color: #e3f2fd;
         border-left: 5px solid #2196f3;
-        padding: 10px 15px;
-        border-radius: 4px;
+        padding: 12px 15px;
+        border-radius: 6px;
         margin-bottom: 15px;
     }
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<div class="main-header">🤖 DELUXY.Ai - Dynamic Text-to-3D CAD</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-header">Ketik perintah client di bawah, AI akan langsung membuat model 3D CAD yang sesuai!</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-header">🤖 DELUXY.Ai - AI Generative CAD Engine</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-header">Powered by Gemini AI - Masukkan prompt bebas dalam bahasa alami</div>', unsafe_allow_html=True)
 
 # ================= SIDEBAR PARAMETER =================
-st.sidebar.header("🎨 Pengaturan Material & AI")
+st.sidebar.header("🔑 AI API & Material Setting")
+
+# Input API Key Gemini (Bisa disimpan di st.secrets atau diisi manual)
+api_key = st.sidebar.text_input("Gemini API Key:", type="password", help="Dapatkan API Key gratis dari Google AI Studio")
 
 material = st.sidebar.selectbox(
     "Pilih Material Komponen:",
@@ -65,89 +71,145 @@ warna_render = {
 st.subheader("💬 AI Prompt Bar")
 user_prompt = st.text_input(
     "Masukkan instruksi / permintaan client:",
-    value="Tolong buatkan Roda Gigi (Gear) dengan 20 gigi dan tebal 20mm",
-    placeholder="Contoh: 'Buatkan saya poros bertingkat', 'Tolong gambarkan gear 12 gigi', atau 'Buat flange plate 4 lubang'"
+    value="tolong buatkan saya komponen dari rel pancing",
+    placeholder="Contoh: 'Buatkan komponen internal reel pancing', 'Gear pinion 16 gigi', 'Poros engkol'"
 )
 
-# ================= LOGIKA DETEKSI / ENGINE AI =================
-prompt_lower = user_prompt.lower()
+# ================= LOGIKA LLM AI PARSER =================
+@st.cache_data(show_spinner=False)
+def parse_prompt_with_gemini(prompt_text, gemini_key):
+    """Menggunakan Gemini AI untuk menganalisis niat client dan menghasilkan parameter CAD"""
+    if not gemini_key:
+        return None
+    
+    try:
+        client = genai.Client(api_key=gemini_key)
+        
+        system_instruction = """
+        Anda adalah AI CAD Assistant berpengalaman. Tugas Anda adalah menganalisis permintaan pengguna (bahkan jika ambigu/bebas seperti 'komponen rel pancing') dan memetakan menjadi salah satu dari 4 bentuk 3D dasar CAD berikut:
+        1. "Roda Gigi (Spur Gear)" - Gunakan ini untuk komponen mekanis berputar seperti drive gear, pinion gear, gir pemutar reel pancing, dll.
+        2. "Poros Bertingkat (Shaft)" - Gunakan ini untuk as, spindle, main shaft rel pancing, batang putar, dll.
+        3. "Pelat Flensa Berlubang (Flange Plate)" - Gunakan ini untuk disk, rotor plate, piringan rem, penutup melingkar berlubang.
+        4. "Siku Penopang (Bracket)" - Gunakan ini untuk rangka L, mount, penopang, casing siku, dll.
 
-# AI Parsing logic untuk menentukan Tipe Komponen
-if any(kw in prompt_lower for kw in ["gear", "gigi", "roda gigi", "cog", "pinion"]):
-    komponen_type = "Roda Gigi (Spur Gear)"
-elif any(kw in prompt_lower for kw in ["poros", "shaft", "as ", "rod", "silinder bertingkat"]):
-    komponen_type = "Poros Bertingkat (Shaft)"
-elif any(kw in prompt_lower for kw in ["flange", "flensa", "pelat bulat", "piringan berlubang", "disk"]):
-    komponen_type = "Pelat Flensa Berlubang (Flange Plate)"
-elif any(kw in prompt_lower for kw in ["bracket", "siku", "penopang", "l-bracket", "dudukan"]):
-    komponen_type = "Siku Penopang (Bracket)"
+        Kembalikan HANYA format JSON valid tanpa teks markdown pembungkus. Format JSON:
+        {
+            "komponen_type": "salah satu dari 4 jenis di atas",
+            "penjelasan_ai": "alasan singkat mengapa bentuk ini dipilih berdasarkan permintaan",
+            "params": {
+                "num_teeth": 18 (int, jika gear),
+                "gear_radius": 40 (int mm, jika gear),
+                "gear_thickness": 12 (int mm, jika gear),
+                "gear_bore": 10 (int mm, jika gear),
+                "d1": 25 (int mm, jika shaft),
+                "l1": 60 (int mm, jika shaft),
+                "d2": 35 (int mm, jika shaft),
+                "l2": 50 (int mm, jika shaft),
+                "d_outer": 100 (int mm, jika flange),
+                "d_inner": 30 (int mm, jika flange),
+                "tebal": 8 (int mm, jika flange),
+                "jumlah_lubang": 4 (int, jika flange),
+                "d_lubang": 6 (int mm, jika flange),
+                "p": 70 (int mm, jika bracket),
+                "l": 40 (int mm, jika bracket),
+                "t": 70 (int mm, jika bracket),
+                "tebal_b": 5 (int mm, jika bracket)
+            }
+        }
+        """
+
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=f"Permintaan Client: '{prompt_text}'",
+            config=types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                temperature=0.2,
+                response_mime_type="application/json"
+            )
+        )
+        return json.loads(response.text)
+    except Exception as e:
+        st.error(f"Gagal memproses dengan AI: {e}")
+        return None
+
+# Panggil AI Gemini
+ai_result = None
+if api_key and user_prompt:
+    with st.spinner("🧠 AI Gemini sedang menganalisis permintaan client..."):
+        ai_result = parse_prompt_with_gemini(user_prompt, api_key)
+
+# Fallback sederhana jika API Key belum diisi
+if not ai_result:
+    prompt_lower = user_prompt.lower()
+    if any(kw in prompt_lower for kw in ["pancing", "reel", "shaft", "poros", "as"]):
+        komponen_type = "Poros Bertingkat (Shaft)"
+        penjelasan = "Terdeteksi kata pancing/shaft, dipetakan ke Poros Utama (Main Shaft)."
+    elif any(kw in prompt_lower for kw in ["gear", "gigi", "gir"]):
+        komponen_type = "Roda Gigi (Spur Gear)"
+        penjelasan = "Terdeteksi kata gear/gigi."
+    elif any(kw in prompt_lower for kw in ["flange", "pelat"]):
+        komponen_type = "Pelat Flensa Berlubang (Flange Plate)"
+        penjelasan = "Terdeteksi kata flange/pelat."
+    else:
+        komponen_type = "Siku Penopang (Bracket)"
+        penjelasan = "Permintaan umum, dipetakan ke Bracket/Rangka dasar."
+    
+    params = {}
 else:
-    # Default jika kata kunci tidak dikenali
-    komponen_type = "Roda Gigi (Spur Gear)"
+    komponen_type = ai_result.get("komponen_type", "Poros Bertingkat (Shaft)")
+    penjelasan = ai_result.get("penjelasan_ai", "Dipilih berdasarkan analisis AI.")
+    params = ai_result.get("params", {})
 
+# Tampilkan Status AI
 st.markdown(f"""
 <div class="ai-badge">
-    🧠 <b>AI Intent Detector:</b> Terdeteksi client meminta bentuk <b>{komponen_type}</b>.
+    🧠 <b>AI Intent Detector:</b> {penjelasan}<br>
+    🎯 <b>Bentuk 3D Terpilih:</b> <u>{komponen_type}</u>
 </div>
 """, unsafe_allow_html=True)
 
-# Ekstraksi angka otomatis jika pengguna menyebutkan jumlah gigi di prompt
-extracted_numbers = re.findall(r'\d+', prompt_lower)
-default_teeth = int(extracted_numbers[0]) if extracted_numbers and komponen_type == "Roda Gigi (Spur Gear)" else 18
-default_teeth = max(8, min(default_teeth, 48))
+# Inisialisasi Parameter Berdasarkan Hasil AI
+num_teeth = params.get("num_teeth", 18)
+gear_radius = params.get("gear_radius", 40)
+gear_thickness = params.get("gear_thickness", 12)
+gear_bore = params.get("gear_bore", 10)
 
-# Fine-tuning slider opsional di Sidebar
-st.sidebar.markdown("---")
-st.sidebar.subheader("📐 Precision Adjuster (AI Fine-Tune)")
+d1 = params.get("d1", 20)
+l1 = params.get("l1", 70)
+d2 = params.get("d2", 30)
+l2 = params.get("l2", 40)
 
-# Dynamic UI Sidebar sesuai komponen yang dideteksi AI
+d_outer = params.get("d_outer", 100)
+d_inner = params.get("d_inner", 30)
+tebal = params.get("tebal", 8)
+jumlah_lubang = params.get("jumlah_lubang", 4)
+d_lubang = params.get("d_lubang", 6)
+
+p = params.get("p", 70)
+l = params.get("l", 40)
+t = params.get("t", 70)
+tebal_b = params.get("tebal_b", 5)
+
+# Hitung Volume
 if komponen_type == "Roda Gigi (Spur Gear)":
-    num_teeth = st.sidebar.slider("Jumlah Gigi (Teeth)", 8, 48, default_teeth)
-    gear_radius = st.sidebar.slider("Radius Luar Gear (mm)", 20, 150, 50)
-    gear_thickness = st.sidebar.slider("Ketebalan Gear (mm)", 5, 50, 15)
-    gear_bore = st.sidebar.slider("Diameter Lubang Poros (mm)", 5, 50, 15)
-    
     area_gear = np.pi * (gear_radius/10)**2 * 0.85 - np.pi * ((gear_bore/10)/2)**2
     total_volume = max(0.1, area_gear * (gear_thickness/10))
-    d1 = l1 = d2 = l2 = d_outer = d_inner = tebal = jumlah_lubang = d_lubang = p = l = t = tebal_b = 0
-
 elif komponen_type == "Poros Bertingkat (Shaft)":
-    d1 = st.sidebar.slider("Diameter 1 (d1)", 10, 100, 30)
-    l1 = st.sidebar.slider("Panjang 1 (l1)", 20, 200, 50)
-    d2 = st.sidebar.slider("Diameter 2 (d2)", 10, 100, 45)
-    l2 = st.sidebar.slider("Panjang 2 (l2)", 20, 200, 80)
-    
     v1 = np.pi * ((d1/10)/2)**2 * (l1/10)
     v2 = np.pi * ((d2/10)/2)**2 * (l2/10)
     total_volume = v1 + v2
-    num_teeth = gear_radius = gear_thickness = gear_bore = d_outer = d_inner = tebal = jumlah_lubang = d_lubang = p = l = t = tebal_b = 0
-
 elif komponen_type == "Pelat Flensa Berlubang (Flange Plate)":
-    d_outer = st.sidebar.slider("Diameter Luar (OD)", 50, 300, 120)
-    d_inner = st.sidebar.slider("Diameter Lubang Tengah (ID)", 10, 200, 40)
-    tebal = st.sidebar.slider("Ketebalan (t)", 2, 50, 10)
-    jumlah_lubang = st.sidebar.slider("Jumlah Lubang Baut", 3, 12, 4)
-    d_lubang = st.sidebar.slider("Diameter Lubang Baut", 4, 20, 8)
-    
     vol_base = np.pi * ((d_outer/10)/2)**2 * (tebal/10)
     vol_hole_center = np.pi * ((d_inner/10)/2)**2 * (tebal/10)
     vol_holes = jumlah_lubang * (np.pi * ((d_lubang/10)/2)**2 * (tebal/10))
     total_volume = max(0.1, vol_base - vol_hole_center - vol_holes)
-    num_teeth = gear_radius = gear_thickness = gear_bore = d1 = l1 = d2 = l2 = p = l = t = tebal_b = 0
-
-else: # Bracket
-    p = st.sidebar.slider("Panjang (P)", 30, 200, 80)
-    l = st.sidebar.slider("Lebar (L)", 20, 150, 50)
-    t = st.sidebar.slider("Tinggi (T)", 30, 200, 80)
-    tebal_b = st.sidebar.slider("Tebal Dinding (t)", 3, 20, 6)
-    
+else:
     total_volume = ((p/10 * l/10 * tebal_b/10) + ((t/10 - tebal_b/10) * l/10 * tebal_b/10))
-    num_teeth = gear_radius = gear_thickness = gear_bore = d1 = l1 = d2 = l2 = d_outer = d_inner = tebal = jumlah_lubang = d_lubang = 0
 
 berat_gram = total_volume * massa_jenis[material]
 harga_est = (berat_gram / 1000) * 160000 + 75000
 
-# ================= TAMPILAN VISUALIZER & EYES =================
+# ================= TAMPILAN VISUALIZER & ANALYSIS =================
 col1, col2 = st.columns([3, 2])
 
 with col1:
