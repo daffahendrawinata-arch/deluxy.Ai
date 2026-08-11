@@ -169,6 +169,6 @@ with col1:
 
 with col2:
     st.subheader("📊 Info Output")
-    st.write(**Item Terpilih:**, bentuk_terpilih)
-    st.write(**Material:**, material)
+    st.write(f"**Item Terpilih:** {bentuk_terpilih}")
+    st.write(f"**Material:** {material}")
     st.success("Visualisasi 3D berhasil dirender oleh AI!")
