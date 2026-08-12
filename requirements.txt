@@ -1,7 +1,7 @@
-txt
 streamlit
-numpy
 plotly
+cadquery
 openai
-cadquery==2.8.0
-
+pydantic
+ezdxf
+reportlab
