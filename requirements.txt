@@ -1,5 +1,7 @@
+txt
 streamlit
 numpy
 plotly
 openai
 cadquery==2.8.0
+
