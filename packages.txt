@@ -1,5 +1,7 @@
+txt
 libgl1
 libglu1-mesa
 libxrender1
 libxext6
 libsm6
+libfontconfig1
